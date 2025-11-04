@@ -306,6 +306,17 @@ curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
 - Student grade viewing and GPA tracking
 - Teacher grade management
 - Assignment grade synchronization
+- Reports and analytics system
+- Student performance reports with GPA, grades, attendance, assignments
+- Teacher workload analytics with course and student metrics
+- Course enrollment trends and utilization analysis
+- Attendance statistics with low-attendance student identification
+- Course-specific analytics (enrollment, assignments, grades, attendance)
+- Class performance reports
+- Role-specific dashboard summaries
+- Mongoose aggregation pipelines for complex queries
+- Date range filtering for time-based analysis
+- RBAC-enforced report access control
 
 ### Data Model Relationships
 
@@ -324,6 +335,17 @@ curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
 - Late submission handling with penalties
 - Assignment statistics and analytics
 - Deadline validation and status tracking
+- Reports and analytics system with comprehensive data analysis
+- Student performance reports with GPA, grades, attendance, assignments
+- Teacher workload analytics with course and student metrics
+- Course enrollment trends and utilization analysis
+- Attendance statistics with low-attendance student identification
+- Course-specific analytics (enrollment, assignments, grades, attendance)
+- Class performance reports
+- Role-specific dashboard summaries
+- Mongoose aggregation pipelines for complex queries
+- Date range filtering for time-based analysis
+- RBAC-enforced report access control
 
 ## Attendance Tracking
 
@@ -659,6 +681,18 @@ The notification system provides dual-channel notifications (email and in-app) f
 - DELETE `/api/v1/notifications/:id` - Delete notification (All authenticated)
 - DELETE `/api/v1/notifications/my/all` - Delete all notifications (All authenticated)
 
+### Reports and Analytics API Endpoints
+
+- GET `/api/v1/reports/students/:id/performance` - Student performance report (Teacher+)
+- GET `/api/v1/reports/my/performance` - Own performance report (Student)
+- GET `/api/v1/reports/teachers/:id/workload` - Teacher workload report (Manager+)
+- GET `/api/v1/reports/my/workload` - Own workload report (Teacher)
+- GET `/api/v1/reports/enrollment-trends` - Enrollment trends (Manager+)
+- GET `/api/v1/reports/attendance-statistics` - Attendance statistics (Teacher+)
+- GET `/api/v1/reports/courses/:id/analytics` - Course analytics (Teacher+)
+- GET `/api/v1/reports/classes/:id/performance` - Class performance (Teacher+)
+- GET `/api/v1/reports/dashboard` - Dashboard summary (All authenticated)
+
 ### Notification Triggers
 
 Notifications are automatically triggered in the following scenarios:
@@ -706,8 +740,103 @@ All triggers use fire-and-forget pattern (non-blocking) to ensure main operation
 - Unsubscribe functionality
 - Notification history and analytics
 
+## Reports and Analytics (Phase 13)
+
+The reporting and analytics system provides comprehensive data analysis using Mongoose aggregation pipelines. The system generates actionable insights for different user roles, with RBAC-enforced data access ensuring students see only their own data, teachers see their classes, and admin/manager see all reports.
+
+### Features
+
+- **Comprehensive analytics** using Mongoose aggregation pipelines
+- **Student performance reports** with GPA, grades, attendance, and assignments
+- **Teacher workload reports** with courses, students, assignments, and grading pending
+- **Course enrollment trends** with enrollment by month, top courses, and utilization rates
+- **Attendance statistics** with overall rates, by class, and low attendance student identification
+- **Course-specific analytics** including enrollment, assignments, grades, and attendance
+- **Class performance reports** with attendance by student
+- **Role-specific dashboard summaries** for all user roles
+- **Date range filtering** for time-based analysis
+- **RBAC-enforced data access** (students see own data, teachers see their classes, admin/manager see all)
+
+### Available Reports
+
+#### 1. Student Performance Report
+
+- Overall GPA and total courses
+- Course-by-course performance (grades, attendance, assignments)
+- Attendance statistics (total, present, absent, late, rate)
+- Assignment statistics (total, submitted, graded, average score)
+- **Accessible by:** Student (own), Teacher/Manager/Admin (any student)
+
+#### 2. Teacher Workload Report
+
+- Total courses, students, classes, assignments
+- Pending grading count (submissions awaiting grading)
+- Average class size
+- Course-by-course breakdown (students, assignments, classes)
+- **Accessible by:** Teacher (own), Manager/Admin (any teacher)
+
+#### 3. Course Enrollment Trends
+
+- Total courses and active courses
+- Total enrollments and average per course
+- Enrollment by month (time series)
+- Top courses by enrollment with utilization rates
+- Courses by status distribution
+- **Accessible by:** Manager and Admin only
+
+#### 4. Attendance Statistics
+
+- Overall attendance rate
+- Status distribution (present, absent, late)
+- Attendance by month (time series)
+- Attendance by class (identify problematic classes)
+- Low attendance students (attendance rate < 75%)
+- Filterable by course, teacher, class, date range
+- **Accessible by:** Teacher (own classes), Manager/Admin (all)
+
+#### 5. Course Analytics
+
+- Enrollment statistics (current, capacity, utilization)
+- Assignment statistics (total, by status, average submissions)
+- Grade statistics (average, distribution, passing rate)
+- Attendance statistics (overall rate for course)
+- **Accessible by:** Teacher (own courses), Manager/Admin (all)
+
+#### 6. Class Performance
+
+- Class details and attendance summary
+- Student-by-student attendance list
+- **Accessible by:** Teacher (own classes), Manager/Admin (all)
+
+#### 7. Dashboard Summary
+
+- Role-specific summary data
+- Admin/Manager: system-wide metrics
+- Teacher: my courses, students, pending tasks
+- Student: enrolled courses, upcoming assignments, recent grades
+- **Accessible by:** All authenticated users (role-specific data)
+
+### Aggregation Pipeline Examples
+
+The reporting system leverages Mongoose aggregation pipelines for complex queries:
+
+- **Student Performance:** $match student → $lookup courses → $lookup grades → $group by course → calculate averages
+- **Teacher Workload:** $match teacher → $lookup courses → $unwind students → count unique students → $lookup assignments → count pending
+- **Enrollment Trends:** $unwind students → $group by month → count enrollments → sort by month
+- **Attendance Statistics:** $match filters → $group by status → calculate rates → $lookup classes → group by class
+
+These pipelines leverage existing indexes for optimal performance.
+
+### Performance Considerations
+
+- Aggregation pipelines use existing compound indexes
+- Date range filtering reduces dataset size
+- Pagination support for large result sets (future enhancement)
+- Caching for frequently accessed reports (future enhancement)
+- Background job for pre-computing complex reports (future enhancement)
+
 ### Progress Tracker
 
-- Phase 12 complete: Notification System (Email and In-App)
-- 12/18 phases completed
-- Next phase: Phase 13 — Reports and Analytics APIs
+- Phase 13 complete: Reports and Analytics APIs
+- 13/18 phases completed
+- Next phase: Phase 14 — Admin Dashboard APIs

@@ -13,6 +13,7 @@ import assignmentRoutes from './routes/assignmentRoutes';
 import gradeRoutes from './routes/gradeRoutes';
 import scheduleRoutes from './routes/scheduleRoutes';
 import notificationRoutes from './routes/notificationRoutes';
+import reportRoutes from './routes/reportRoutes';
 import passport from 'passport';
 import { initializePassport } from './config/passport';
 
@@ -70,7 +71,8 @@ app.use(`/api/${apiVersion}/assignments`, assignmentRoutes);
 app.use(`/api/${apiVersion}/grades`, gradeRoutes);
 app.use(`/api/${apiVersion}/schedules`, scheduleRoutes);
 app.use(`/api/${apiVersion}/notifications`, notificationRoutes);
-// Future routes: reports, admin, manager, coordinator, student dashboards, etc.
+app.use(`/api/${apiVersion}/reports`, reportRoutes);
+// Future routes: admin, manager, coordinator, student dashboards, etc.
 
 // 404 handler
 app.use((req: Request, res: Response) => {
