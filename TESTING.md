@@ -170,6 +170,151 @@ Expected: `200 OK`, created final class details.
 
 ---
 
+## Courses API
+
+All endpoints below require `Authorization: Bearer {{accessToken}}` unless stated.
+
+### 1) Create Course (Admin/Manager)
+POST `{{baseUrl}}/api/{{apiVersion}}/courses`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{
+  "name": "Mathematics 101",
+  "description": "Introductory course covering algebra and geometry",
+  "code": "MATH101",
+  "teacher": "<TEACHER_USER_ID>",
+  "maxStudents": 30,
+  "status": "active",
+  "schedule": {"daysOfWeek": ["monday","wednesday"], "startTime": "10:00 AM", "endTime": "11:00 AM", "duration": 60},
+  "tags": ["mathematics"],
+  "prerequisites": ["basic-arithmetic"],
+  "syllabus": "Algebra basics, geometry fundamentals"
+}
+```
+Expected: `201 Created`, returns `{ course }`.
+
+### 2) List Courses
+GET `{{baseUrl}}/api/{{apiVersion}}/courses?status=active&search=math`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, array of courses.
+
+### 3) Get Course by ID
+GET `{{baseUrl}}/api/{{apiVersion}}/courses/:id`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, a course document.
+
+### 4) Update Course (Admin/Manager)
+PUT `{{baseUrl}}/api/{{apiVersion}}/courses/:id`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON example):
+```json
+{ "description": "Updated description", "status": "active" }
+```
+Expected: `200 OK`, updated course.
+
+### 5) Delete Course (Admin)
+DELETE `{{baseUrl}}/api/{{apiVersion}}/courses/:id`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK` (only if no students enrolled).
+
+### 6) Enroll Student (Admin/Manager/Teacher)
+POST `{{baseUrl}}/api/{{apiVersion}}/courses/:id/enroll`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{ "studentId": "<STUDENT_USER_ID>" }
+```
+Expected: `200 OK`, updated course with students.
+
+### 7) Unenroll Student (Admin/Manager/Teacher)
+POST `{{baseUrl}}/api/{{apiVersion}}/courses/:id/unenroll`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{ "studentId": "<STUDENT_USER_ID>" }
+```
+Expected: `200 OK`, updated course.
+
+### 8) Course Capacity
+GET `{{baseUrl}}/api/{{apiVersion}}/courses/:id/capacity`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ available, total, isFull }`.
+
+---
+
+## Class Sessions API
+
+All endpoints below require `Authorization: Bearer {{accessToken}}` unless stated.
+
+### 1) Create Class Session (Admin/Manager/Coordinator)
+POST `{{baseUrl}}/api/{{apiVersion}}/classes-sessions`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{
+  "course": "<COURSE_ID>",
+  "title": "Session 1: Algebra Basics",
+  "teacher": "<TEACHER_USER_ID>",
+  "scheduledDate": "2025-07-10",
+  "startTime": "2025-07-10T10:00:00.000Z",
+  "endTime": "2025-07-10T11:00:00.000Z",
+  "location": { "type": "online", "meetingLink": "https://meet.example.com/abc" },
+  "topics": ["linear equations"],
+  "maxStudents": 30
+}
+```
+Expected: `201 Created`, returns `{ class }`.
+
+### 2) List Class Sessions
+GET `{{baseUrl}}/api/{{apiVersion}}/classes-sessions?course={{COURSE_ID}}&status=scheduled`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, array of classes.
+
+### 3) Get Class Session by ID
+GET `{{baseUrl}}/api/{{apiVersion}}/classes-sessions/:id`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, a class session.
+
+### 4) Update Class Session (Admin/Manager/Coordinator)
+PUT `{{baseUrl}}/api/{{apiVersion}}/classes-sessions/:id`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON example):
+```json
+{ "status": "in_progress", "materials": ["https://docs.example.com/notes.pdf"] }
+```
+Expected: `200 OK`, updated class session.
+
+### 5) Delete Class Session (Admin/Manager)
+DELETE `{{baseUrl}}/api/{{apiVersion}}/classes-sessions/:id`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK` (only if not started/completed).
+
+### 6) Add Student to Class Session (Admin/Manager/Teacher/Coordinator)
+POST `{{baseUrl}}/api/{{apiVersion}}/classes-sessions/:id/students`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{ "studentId": "<STUDENT_USER_ID>" }
+```
+Expected: `200 OK`, updated class session with students.
+
+### 7) Remove Student from Class Session (Admin/Manager/Teacher/Coordinator)
+DELETE `{{baseUrl}}/api/{{apiVersion}}/classes-sessions/:id/students`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{ "studentId": "<STUDENT_USER_ID>" }
+```
+Expected: `200 OK`, updated class session.
+
+### 8) Upcoming Class Sessions
+GET `{{baseUrl}}/api/{{apiVersion}}/classes-sessions/upcoming`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, list of upcoming sessions.
+
+---
+
 ## Common Issues & Tips
 - 401 on protected routes: ensure `Authorization` header is present and `accessToken` is not expired.
 - 401 on refresh: ensure `refreshToken` matches the one stored for the user; if not, log in again.
@@ -182,9 +327,11 @@ Expected: `200 OK`, created final class details.
 1. Register → store tokens
 2. GET `/auth/me` with `accessToken`
 3. Refresh token → store new tokens
-4. Create a lead → capture leadId
-5. Try list leads → see your lead
-6. (Optional) Convert lead to final class
-7. Logout → ensure `refreshToken` no longer works
+4. Create a course (as Manager/Admin) → capture courseId
+5. Enroll a student into the course (Teacher/Manager/Admin)
+6. Create a class session for the course → capture classId
+7. Add/remove a student from the class session
+8. (Optional) Leads: create and convert to final class
+9. Logout → ensure `refreshToken` no longer works
 
 
