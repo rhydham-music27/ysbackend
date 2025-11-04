@@ -399,6 +399,113 @@ Notes:
 
 ---
 
+## Assignments API
+
+All endpoints require `Authorization: Bearer {{accessToken}}`.
+
+Preconditions:
+- A Course exists with a `teacher` assigned.
+- The Student user is enrolled in that Course.
+
+### 1) Create Assignment (Teacher)
+POST `{{baseUrl}}/api/{{apiVersion}}/assignments`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{
+  "title": "Homework 1",
+  "description": "Solve problems 1-10",
+  "course": "<COURSE_ID>",
+  "dueDate": "2030-01-01T17:00:00.000Z",
+  "maxGrade": 100,
+  "allowLateSubmission": false
+}
+```
+Expected: `201 Created`, returns `{ assignment }` with `status = draft`.
+
+### 2) Publish Assignment (Teacher)
+PATCH `{{baseUrl}}/api/{{apiVersion}}/assignments/:id/publish`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `status = published`.
+
+### 3) List Assignments (All Authenticated)
+GET `{{baseUrl}}/api/{{apiVersion}}/assignments?course={{COURSE_ID}}`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, array of assignments sorted by `dueDate`.
+
+### 4) Get Assignment by ID (All Authenticated)
+GET `{{baseUrl}}/api/{{apiVersion}}/assignments/:id`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, populated assignment with `teacher`, `course`, and submissions.
+
+### 5) Get My Assignments (Student)
+GET `{{baseUrl}}/api/{{apiVersion}}/assignments/my?course={{COURSE_ID}}`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, published assignments for enrolled courses.
+
+### 6) Submit Assignment (Student)
+POST `{{baseUrl}}/api/{{apiVersion}}/assignments/:id/submit`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{ "content": "My answers...", "attachments": ["https://files.example.com/answer.pdf"] }
+```
+Expected: `201 Created`, updated assignment with new/updated submission.
+Notes:
+- If submitted after `dueDate` and `allowLateSubmission=false`, expect a 4xx error.
+- If submitted after `dueDate` and `allowLateSubmission=true`, status is `late`.
+
+### 7) Get My Submission (Student)
+GET `{{baseUrl}}/api/{{apiVersion}}/assignments/:id/my-submission`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ submission }` or `404` if none.
+
+### 8) Grade Submission (Teacher)
+POST `{{baseUrl}}/api/{{apiVersion}}/assignments/:id/submissions/:submissionId/grade`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{ "grade": 95, "feedback": "Great work" }
+```
+Expected: `200 OK`, submission `status = graded` with `gradedBy` and `gradedAt` set.
+Validation:
+- `0 <= grade <= maxGrade`.
+- Cannot grade if status is `not_submitted`.
+
+### 9) Get Assignment Statistics (Teacher/Manager/Admin)
+GET `{{baseUrl}}/api/{{apiVersion}}/assignments/:id/stats`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ totalSubmissions, gradedSubmissions, averageGrade, submissionRate }`.
+
+### 10) Check Deadline (All Authenticated)
+GET `{{baseUrl}}/api/{{apiVersion}}/assignments/:id/deadline`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ isOverdue, timeRemaining, canSubmit }`.
+
+### 11) Update Assignment (Teacher)
+PUT `{{baseUrl}}/api/{{apiVersion}}/assignments/:id`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON example):
+```json
+{ "description": "Updated instructions", "dueDate": "2030-01-02T17:00:00.000Z" }
+```
+Expected: `200 OK`, updated assignment.
+Rules:
+- New `dueDate` must be in the future.
+- Cannot change `course` if submissions exist.
+
+### 12) Close Assignment (Teacher)
+PATCH `{{baseUrl}}/api/{{apiVersion}}/assignments/:id/close`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `status = closed`.
+
+### 13) Delete Assignment (Teacher)
+DELETE `{{baseUrl}}/api/{{apiVersion}}/assignments/:id`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK` if and only if there are no submissions. Otherwise 4xx with guidance to close instead.
+
+---
+
 ## Common Issues & Tips
 - 401 on protected routes: ensure `Authorization` header is present and `accessToken` is not expired.
 - 401 on refresh: ensure `refreshToken` matches the one stored for the user; if not, log in again.

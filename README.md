@@ -192,6 +192,113 @@ Notes:
 - GET `/api/v1/attendance/my/stats` — Get own stats (Student)
 - DELETE `/api/v1/attendance/:id` — Delete attendance (Manager, Admin)
 
+## Assignment and Homework Management
+
+The assignment system enables teachers to create, publish, and grade assignments linked to courses, while students can view and submit their work.
+
+- Assignments linked to Courses with deadlines and grading
+- Teachers can create, update, publish, and grade assignments
+- Students can submit assignments with content and attachments
+- Support for late submissions with optional penalties
+- Embedded submission tracking within assignment documents
+- Assignment lifecycle: Draft → Published → Closed/Graded
+- Submission statuses: Not Submitted, Submitted, Late, Graded, Resubmitted
+
+### Assignment Workflow
+1. **Teacher creates assignment:**
+   - Create in draft mode with title, description, due date, and max grade
+   - Optionally add attachments and instructions
+   - Publish to make it visible to students
+2. **Student submits assignment:**
+   - View published assignments for enrolled courses
+   - Submit content and/or attachments before the deadline
+   - Resubmissions allowed if enabled by teacher; late submissions marked accordingly
+3. **Teacher grades submission:**
+   - View all submissions
+   - Grade each submission with score and feedback
+   - System tracks grading progress and statistics
+4. **Student views grade:**
+   - View submission status and grade
+   - Read teacher feedback
+
+### Assignment API Endpoints
+
+- POST `/api/v1/assignments` — Create assignment (Teacher)
+- GET `/api/v1/assignments` — List assignments (All authenticated)
+- GET `/api/v1/assignments/my` — Get student's assignments (Student)
+- GET `/api/v1/assignments/:id` — Get assignment details (All authenticated)
+- PUT `/api/v1/assignments/:id` — Update assignment (Teacher)
+- DELETE `/api/v1/assignments/:id` — Delete assignment (Teacher)
+- POST `/api/v1/assignments/:id/submit` — Submit assignment (Student)
+- POST `/api/v1/assignments/:id/submissions/:submissionId/grade` — Grade submission (Teacher)
+- GET `/api/v1/assignments/:id/my-submission` — Get own submission (Student)
+- GET `/api/v1/assignments/:id/stats` — Get assignment statistics (Teacher+)
+- GET `/api/v1/assignments/:id/deadline` — Check deadline status (All authenticated)
+- PATCH `/api/v1/assignments/:id/publish` — Publish assignment (Teacher)
+- PATCH `/api/v1/assignments/:id/close` — Close assignment (Teacher)
+
+#### Quick cURL Examples
+
+Create (Teacher):
+```bash
+curl -X POST http://localhost:5000/api/v1/assignments \
+  -H "Authorization: Bearer ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Homework 1",
+    "description": "Solve problems 1-10",
+    "course": "<COURSE_ID>",
+    "dueDate": "2030-01-01T17:00:00.000Z",
+    "maxGrade": 100
+  }'
+```
+
+Publish (Teacher):
+```bash
+curl -X PATCH http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/publish \
+  -H "Authorization: Bearer ACCESS_TOKEN"
+```
+
+Submit (Student):
+```bash
+curl -X POST http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/submit \
+  -H "Authorization: Bearer ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"My answers..."}'
+```
+
+Grade (Teacher):
+```bash
+curl -X POST http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/submissions/<SUBMISSION_ID>/grade \
+  -H "Authorization: Bearer ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"grade": 95, "feedback": "Great work"}'
+```
+
+Stats (Teacher+):
+```bash
+curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
+  -H "Authorization: Bearer ACCESS_TOKEN"
+```
+
+### Data Model Relationships
+
+- Assignment → Course (many-to-one)
+- Assignment → Teacher/User (many-to-one, creator)
+- Submission (embedded) → Student/User (many-to-one)
+- Submission (embedded) → GradedBy/User (many-to-one)
+- Submissions are embedded subdocuments within Assignment for data locality
+
+### Completed Features (updated)
+
+- Assignment and homework management system
+- Assignment creation with deadlines and grading criteria
+- Student submission tracking with content and attachments
+- Teacher grading workflow with feedback
+- Late submission handling with penalties
+- Assignment statistics and analytics
+- Deadline validation and status tracking
+
 ## Attendance Tracking
 
 The attendance system enables teachers and coordinators to mark student attendance per class session, with RBAC enforcement and student self-service views.

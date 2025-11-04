@@ -65,7 +65,22 @@ export enum AttendanceStatus {
   EXCUSED = 'excused',
 }
 
+// Assignment and submission lifecycle enums
+export enum AssignmentStatus {
+  DRAFT = 'draft',
+  PUBLISHED = 'published',
+  CLOSED = 'closed',
+  GRADED = 'graded',
+}
+
+export enum SubmissionStatus {
+  NOT_SUBMITTED = 'not_submitted',
+  SUBMITTED = 'submitted',
+  GRADED = 'graded',
+  LATE = 'late',
+  RESUBMITTED = 'resubmitted',
+}
+
 // Future enums (placeholders for subsequent phases):
-// export enum AssignmentStatus { PENDING = 'pending', SUBMITTED = 'submitted', GRADED = 'graded' }
 // export enum NotificationType { EMAIL = 'email', IN_APP = 'in-app', SMS = 'sms' }
 
