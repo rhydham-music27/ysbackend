@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
 import finalClassRoutes from './routes/finalClassRoutes';
 import leadRoutes from './routes/leadRoutes';
+import courseRoutes from './routes/courseRoutes';
+import classRoutes from './routes/classRoutes';
 import passport from 'passport';
 import { initializePassport } from './config/passport';
 
@@ -56,7 +58,9 @@ app.get(`/api/${apiVersion}/health`, (_req: Request, res: Response) => {
 app.use(`/api/${apiVersion}/auth`, authRoutes);
 app.use(`/api/${apiVersion}/classes`, finalClassRoutes);
 app.use(`/api/${apiVersion}/leads`, leadRoutes);
-// Future routes: courses, attendance, assignments, etc.
+app.use(`/api/${apiVersion}/courses`, courseRoutes);
+app.use(`/api/${apiVersion}/classes-sessions`, classRoutes);
+// Future routes: attendance, assignments, grades, schedules, etc.
 
 // 404 handler
 app.use((req: Request, res: Response) => {

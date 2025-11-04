@@ -36,7 +36,7 @@ npm install
 ```
 
 #### Environment Setup
-1. Copy the example environment file a+nd fill values:
+1. Copy the example environment file and fill values:
 ```bash
 cp .env.example .env
 ```
@@ -157,6 +157,28 @@ Notes:
 ### Classes
 - POST `/api/v1/classes/convert` — Convert an approved + paid lead into a final class (protected)
   - Body: `{ leadId, cityCode, tutorAssigned?, tutorTier?, firstMonthStartDate?, monthStartDate? }`
+
+### Courses
+- POST `/api/v1/courses` — Create course (Admin/Manager)
+- GET `/api/v1/courses` — List courses (auth)
+- GET `/api/v1/courses/my` — Get my courses (Teacher/Student)
+- GET `/api/v1/courses/:id` — Get course by id (auth)
+- PUT `/api/v1/courses/:id` — Update course (Admin/Manager)
+- DELETE `/api/v1/courses/:id` — Delete course (Admin; only if no students)
+- POST `/api/v1/courses/:id/enroll` — Enroll student (Admin/Manager/Teacher)
+- POST `/api/v1/courses/:id/unenroll` — Unenroll student (Admin/Manager/Teacher)
+- GET `/api/v1/courses/:id/capacity` — Check course capacity (auth)
+
+### Class Sessions
+- POST `/api/v1/classes-sessions` — Create class session (Admin/Manager/Coordinator)
+- GET `/api/v1/classes-sessions` — List class sessions (auth, filters supported)
+- GET `/api/v1/classes-sessions/my` — Get my class sessions (Teacher/Student)
+- GET `/api/v1/classes-sessions/upcoming` — Get upcoming scheduled sessions (auth)
+- GET `/api/v1/classes-sessions/:id` — Get class session by id (auth)
+- PUT `/api/v1/classes-sessions/:id` — Update class session (Admin/Manager/Coordinator)
+- DELETE `/api/v1/classes-sessions/:id` — Delete class session (Admin/Manager; not started/completed)
+- POST `/api/v1/classes-sessions/:id/students` — Add student to session (Admin/Manager/Teacher/Coordinator)
+- DELETE `/api/v1/classes-sessions/:id/students` — Remove student from session (Admin/Manager/Teacher/Coordinator)
 
 ## Environment Variables
 

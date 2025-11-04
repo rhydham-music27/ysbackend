@@ -34,10 +34,32 @@ export enum ActionType {
   MANAGE = 'manage',
 }
 
+export enum CourseStatus {
+  DRAFT = 'draft',
+  ACTIVE = 'active',
+  ARCHIVED = 'archived',
+  COMPLETED = 'completed',
+}
+
+export enum ClassStatus {
+  SCHEDULED = 'scheduled',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  CANCELLED = 'cancelled',
+}
+
+export enum DayOfWeek {
+  MONDAY = 'monday',
+  TUESDAY = 'tuesday',
+  WEDNESDAY = 'wednesday',
+  THURSDAY = 'thursday',
+  FRIDAY = 'friday',
+  SATURDAY = 'saturday',
+  SUNDAY = 'sunday',
+}
+
 // Future enums (placeholders for subsequent phases):
 // export enum AttendanceStatus { PRESENT = 'present', ABSENT = 'absent', LATE = 'late' }
-// export enum CourseStatus { ACTIVE = 'active', INACTIVE = 'inactive', COMPLETED = 'completed' }
 // export enum AssignmentStatus { PENDING = 'pending', SUBMITTED = 'submitted', GRADED = 'graded' }
 // export enum NotificationType { EMAIL = 'email', IN_APP = 'in-app', SMS = 'sms' }
-
 
