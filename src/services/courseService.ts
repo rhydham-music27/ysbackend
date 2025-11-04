@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Course, { ICourse } from '../models/Course';
 import User from '../models/User';
+import SystemSettings from '../models/SystemSettings';
 import { CourseStatus, UserRole } from '../types/enums';
 
 export interface EnrollStudentParams {
@@ -148,6 +149,39 @@ export async function getCourseStatistics(
     const status = course.status;
 
     return { enrolledCount, capacity, utilizationRate, status };
+  } catch (error) {
+    throw error;
+  }
+}
+
+/**
+ * Check if course creation requires approval based on system settings
+ * This is an optional helper function for approval workflow integration
+ * @param teacherId - The teacher creating the course
+ * @returns Promise<boolean> - true if approval is required, false otherwise
+ */
+export async function checkApprovalRequirement(teacherId: string): Promise<boolean> {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(teacherId)) {
+      throw new Error('Invalid teacher ID');
+    }
+
+    // Check system setting for global approval requirement
+    const requiresApproval = await SystemSettings.getSetting('COURSE_REQUIRES_APPROVAL', false);
+    if (requiresApproval) {
+      return true;
+    }
+
+    // Future: Check teacher-specific settings (e.g., new teachers require approval)
+    // const teacher = await User.findById(teacherId);
+    // if (teacher) {
+    //   const teacherExperience = ...; // Calculate based on courses taught, account age, etc.
+    //   if (teacherExperience < threshold) {
+    //     return true;
+    //   }
+    // }
+
+    return false;
   } catch (error) {
     throw error;
   }

@@ -178,3 +178,11 @@ export enum SettingType {
   JSON = 'json',
 }
 
+// Approval workflow enums (Phase 15)
+export enum ApprovalStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  AUTO_APPROVED = 'auto_approved',
+}
+

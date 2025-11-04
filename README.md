@@ -317,6 +317,15 @@ curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
 - Mongoose aggregation pipelines for complex queries
 - Date range filtering for time-based analysis
 - RBAC-enforced report access control
+- Manager dashboard APIs
+- Teacher oversight and performance monitoring
+- Course approval workflows (approve/reject)
+- Schedule approval workflows (approve/reject)
+- Manager dashboard with pending approvals
+- Course statistics for manager overview
+- Teacher performance metrics and analytics
+- Approval status tracking (pending, approved, rejected)
+- Manager-only RBAC enforcement
 - Admin dashboard APIs
 - User management (CRUD all users, role assignment, activation/deactivation)
 - System settings management (platform configuration, feature flags)
@@ -702,6 +711,23 @@ The notification system provides dual-channel notifications (email and in-app) f
 - GET `/api/v1/reports/classes/:id/performance` - Class performance (Teacher+)
 - GET `/api/v1/reports/dashboard` - Dashboard summary (All authenticated)
 
+### Manager Dashboard APIs
+
+#### Dashboard
+- GET `/api/v1/manager/dashboard` - Manager dashboard (Manager, Admin)
+- GET `/api/v1/manager/course-stats` - Course statistics (Manager, Admin)
+
+#### Approval Workflows
+- GET `/api/v1/manager/approvals/pending` - Pending approvals (Manager, Admin)
+- PATCH `/api/v1/manager/courses/:id/approve` - Approve course (Manager, Admin)
+- PATCH `/api/v1/manager/courses/:id/reject` - Reject course (Manager, Admin)
+- PATCH `/api/v1/manager/schedules/:id/approve` - Approve schedule (Manager, Admin)
+- PATCH `/api/v1/manager/schedules/:id/reject` - Reject schedule (Manager, Admin)
+
+#### Teacher Oversight
+- GET `/api/v1/manager/teachers/performance` - All teachers performance (Manager, Admin)
+- GET `/api/v1/manager/teachers/:id/performance` - Specific teacher performance (Manager, Admin)
+
 ### Admin Dashboard APIs
 
 #### User Management
@@ -1003,8 +1029,161 @@ The admin dashboard system provides comprehensive user management, system settin
 - Soft delete (deactivation) preferred over hard delete
 - Audit logs retained for 90 days for compliance
 
+## Manager Dashboard APIs (Phase 15)
+
+The manager dashboard system provides comprehensive oversight capabilities for managers to monitor teacher performance, approve course and schedule creation requests, and access aggregated analytics. All manager operations are protected with RBAC using `authorizeMinRole(UserRole.MANAGER)` to allow both Manager and Admin access, following the role hierarchy where Admin (level 5) inherits all Manager (level 4) capabilities.
+
+### Features
+
+- **Teacher oversight and performance monitoring**: Comprehensive metrics for all teachers including courses taught, students enrolled, assignments created, and pending grading
+- **Course approval workflows**: Approve or reject course creation requests with notes and automatic activation
+- **Schedule approval workflows**: Approve or reject schedule creation/change requests with notes
+- **Manager dashboard**: Comprehensive overview with pending approvals, statistics, recent approvals, and teacher performance summary
+- **Course statistics and analytics**: Course overview with status distribution, enrollment trends, and top courses
+- **Approval status tracking**: Pending, Approved, Rejected, and Auto-Approved statuses for courses and schedules
+- **RBAC enforcement**: Manager-only access with Admin inheritance (hierarchical access via `authorizeMinRole`)
+
+### Manager Workflows
+
+#### 1. Course Approval Workflow
+
+- Teacher creates course with `requiresApproval` flag set to true
+- Course status set to DRAFT, `approvalStatus` set to PENDING
+- Manager views pending approvals in dashboard
+- Manager reviews course details (name, description, teacher, schedule)
+- Manager approves or rejects with notes
+- If approved: course status changes to ACTIVE, `approvalStatus` to APPROVED
+- If rejected: course remains DRAFT, `approvalStatus` to REJECTED, teacher notified
+
+#### 2. Schedule Approval Workflow
+
+- Coordinator/Admin creates schedule with `requiresApproval` flag set to true
+- Schedule `isActive` set to false, `approvalStatus` set to PENDING
+- Manager views pending schedule approvals
+- Manager reviews schedule details (teacher, time, room, conflicts)
+- Manager approves or rejects with notes
+- If approved: schedule `isActive` set to true, `approvalStatus` to APPROVED
+- If rejected: schedule remains inactive, `approvalStatus` to REJECTED
+
+#### 3. Teacher Oversight
+
+- Manager views all teachers performance metrics
+- Sees courses taught, students enrolled, assignments created
+- Identifies teachers with high pending grading count
+- Reviews teacher workload and average class sizes
+- Uses data for teacher support and resource allocation
+
+#### 4. Manager Dashboard
+
+- Manager logs in and sees dashboard summary
+- Views pending approvals count (courses + schedules)
+- Sees total teachers, courses, students
+- Reviews recent approvals history
+- Accesses teacher performance summary (top 5 by student count)
+
+### Approval Workflows
+
+#### Approval Statuses
+
+- **PENDING**: Awaiting manager approval
+- **APPROVED**: Manager approved, resource activated
+- **REJECTED**: Manager rejected, resource remains inactive
+- **AUTO_APPROVED**: Automatically approved based on rules (future enhancement)
+
+#### Approval Fields
+
+- `approvalStatus`: Current approval state
+- `approvedBy`: Manager who approved/rejected
+- `approvalDate`: When approval/rejection occurred
+- `approvalNotes`: Manager's notes (required for rejection)
+- `requiresApproval`: Whether resource needs approval
+
+#### Approval Policies
+
+- System setting: `COURSE_REQUIRES_APPROVAL` (global policy)
+- Teacher-specific: New teachers require approval, experienced teachers don't (future)
+- Resource-specific: High-capacity courses require approval (future)
+- Configurable via SystemSettings model
+
+#### Approval Integration
+
+- Course model: approval fields added (backward compatible)
+- Schedule model: approval fields added (backward compatible)
+- Existing resources without approval fields continue to work
+- New resources can opt-in to approval workflow
+
+### Manager Dashboard API Endpoints
+
+#### Dashboard
+
+- GET `/api/v1/manager/dashboard` - Manager dashboard (Manager, Admin)
+  - Returns: pending approvals count, total teachers/courses/students, recent approvals, teacher performance summary
+
+- GET `/api/v1/manager/course-stats` - Course statistics (Manager, Admin)
+  - Returns: total courses, active courses, pending approvals, courses by status, top courses by enrollment
+
+#### Approval Workflows
+
+- GET `/api/v1/manager/approvals/pending` - Pending approvals (Manager, Admin)
+  - Returns: pending courses and schedules with summary
+
+- PATCH `/api/v1/manager/courses/:id/approve` - Approve course (Manager, Admin)
+  - Body: `{ approvalNotes? }` (optional)
+  - Sets course status to ACTIVE and approvalStatus to APPROVED
+
+- PATCH `/api/v1/manager/courses/:id/reject` - Reject course (Manager, Admin)
+  - Body: `{ approvalNotes }` (required - rejection reason)
+  - Sets approvalStatus to REJECTED, keeps course as DRAFT
+
+- PATCH `/api/v1/manager/schedules/:id/approve` - Approve schedule (Manager, Admin)
+  - Body: `{ approvalNotes? }` (optional)
+  - Sets schedule isActive to true and approvalStatus to APPROVED
+
+- PATCH `/api/v1/manager/schedules/:id/reject` - Reject schedule (Manager, Admin)
+  - Body: `{ approvalNotes }` (required - rejection reason)
+  - Sets approvalStatus to REJECTED, keeps schedule inactive
+
+#### Teacher Oversight
+
+- GET `/api/v1/manager/teachers/performance` - All teachers performance (Manager, Admin)
+  - Returns: array of teacher performance metrics sorted by total students (busiest first)
+
+- GET `/api/v1/manager/teachers/:id/performance` - Specific teacher performance (Manager, Admin)
+  - Returns: detailed performance metrics for a specific teacher
+
+### Teacher Performance Metrics
+
+Each teacher performance record includes:
+
+- `teacherId`: Teacher user ID
+- `teacherName`: Full name of teacher
+- `totalCourses`: Number of courses taught
+- `totalStudents`: Unique students across all courses
+- `averageClassSize`: Average students per course
+- `totalAssignments`: Total assignments created
+- `gradingPending`: Number of submissions awaiting grading
+- `averageGradeGiven`: Average grade assigned by teacher
+
+### Role Hierarchy
+
+- **Admin (Level 5)**: Full system access, user management, system settings, all manager capabilities
+- **Manager (Level 4)**: Teacher oversight, course/schedule approvals, reports, all teacher capabilities
+- **Teacher (Level 3)**: Create courses/assignments, grade students, mark attendance
+- **Coordinator (Level 3)**: Schedule classes, monitor attendance, coordinate students (parallel to Teacher)
+- **Student (Level 1)**: View courses, submit assignments, view own grades/attendance
+
+Higher roles inherit lower role capabilities. Manager can perform all Teacher operations plus approval workflows.
+
+### Security Best Practices
+
+- All manager endpoints use `authorizeMinRole(UserRole.MANAGER)` for hierarchical access
+- Admins can access all manager endpoints (role hierarchy)
+- Approval actions require authentication and manager role
+- Rejection requires approval notes (explanation required)
+- All approval actions are tracked with `approvedBy` and `approvalDate`
+
 ### Progress Tracker
 
-- Phase 14 complete: Admin Dashboard APIs
-- 14/18 phases completed
-- Next phase: Phase 15 — Manager-Specific APIs
+- Phase 15 complete: Manager Dashboard APIs
+- 15/18 phases completed
+- Next phase: Phase 16 — Class Coordinator-Specific APIs
