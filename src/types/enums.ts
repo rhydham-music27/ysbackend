@@ -84,3 +84,29 @@ export enum SubmissionStatus {
 // Future enums (placeholders for subsequent phases):
 // export enum NotificationType { EMAIL = 'email', IN_APP = 'in-app', SMS = 'sms' }
 
+// Grading system enums
+export enum GradeType {
+  ASSIGNMENT = 'assignment',
+  MANUAL = 'manual',
+  EXAM = 'exam',
+  QUIZ = 'quiz',
+  PARTICIPATION = 'participation',
+  PROJECT = 'project',
+  ATTENDANCE = 'attendance',
+  FINAL = 'final',
+}
+
+export enum LetterGrade {
+  A_PLUS = 'A+',
+  A = 'A',
+  A_MINUS = 'A-',
+  B_PLUS = 'B+',
+  B = 'B',
+  B_MINUS = 'B-',
+  C_PLUS = 'C+',
+  C = 'C',
+  C_MINUS = 'C-',
+  D = 'D',
+  F = 'F',
+}
+

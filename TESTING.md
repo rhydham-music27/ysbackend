@@ -506,6 +506,112 @@ Expected: `200 OK` if and only if there are no submissions. Otherwise 4xx with g
 
 ---
 
+## Grades API
+
+All endpoints require `Authorization: Bearer {{accessToken}}`.
+
+Preconditions:
+- A Course exists, a Teacher is assigned, and a Student is enrolled in the course.
+- For sync tests, an Assignment exists with a graded submission.
+
+### 1) Add Grade (Teacher)
+POST `{{baseUrl}}/api/{{apiVersion}}/grades`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{
+  "student": "<STUDENT_USER_ID>",
+  "course": "<COURSE_ID>",
+  "gradeType": "exam",
+  "score": 88,
+  "maxScore": 100,
+  "weight": 1.5,
+  "feedback": "Solid performance",
+  "term": "Fall 2025",
+  "isPublished": true
+}
+```
+Expected: `201 Created`, returns `{ grade }`.
+
+### 2) List Grades (Teacher/Manager/Admin)
+GET `{{baseUrl}}/api/{{apiVersion}}/grades?course={{COURSE_ID}}&student={{STUDENT_USER_ID}}`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ grades, count }`.
+
+### 3) Get My Grades (Student)
+GET `{{baseUrl}}/api/{{apiVersion}}/grades/my?course={{COURSE_ID}}`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ grades, count }`.
+
+### 4) Get My GPA (Student)
+GET `{{baseUrl}}/api/{{apiVersion}}/grades/my/gpa`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ gpa: { gpa, totalCourses, totalGrades, courseGrades } }`.
+
+### 5) Get My Course Grade (Student)
+GET `{{baseUrl}}/api/{{apiVersion}}/grades/my/courses/{{COURSE_ID}}`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ courseGrade }`.
+
+### 6) Get Student Grades (Teacher/Manager/Admin)
+GET `{{baseUrl}}/api/{{apiVersion}}/grades/students/{{STUDENT_USER_ID}}?course={{COURSE_ID}}`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ grades, count }`.
+
+### 7) Get Student GPA (Teacher/Manager/Admin)
+GET `{{baseUrl}}/api/{{apiVersion}}/grades/students/{{STUDENT_USER_ID}}/gpa`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ gpa: { gpa, totalCourses, totalGrades, courseGrades } }`.
+
+### 8) Get Student Course Grade (Teacher/Manager/Admin)
+GET `{{baseUrl}}/api/{{apiVersion}}/grades/students/{{STUDENT_USER_ID}}/courses/{{COURSE_ID}}`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ courseGrade }`.
+
+### 9) Get Course Grades (Teacher/Manager/Admin)
+GET `{{baseUrl}}/api/{{apiVersion}}/grades/courses/{{COURSE_ID}}`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ grades, count }`.
+
+### 10) Get Course Grade Statistics (Teacher/Manager/Admin)
+GET `{{baseUrl}}/api/{{apiVersion}}/grades/courses/{{COURSE_ID}}/stats`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ stats: { averageScore, highestScore, lowestScore, passingRate, gradeDistribution } }`.
+
+### 11) Get Grade by ID (Teacher/Manager/Admin)
+GET `{{baseUrl}}/api/{{apiVersion}}/grades/{{GRADE_ID}}`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, `{ grade }`.
+
+### 12) Update Grade (Teacher)
+PUT `{{baseUrl}}/api/{{apiVersion}}/grades/{{GRADE_ID}}`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON example):
+```json
+{ "score": 90, "feedback": "Re-evaluated partial credit" }
+```
+Expected: `200 OK`, updated `{ grade }`.
+
+### 13) Delete Grade (Teacher)
+DELETE `{{baseUrl}}/api/{{apiVersion}}/grades/{{GRADE_ID}}`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, confirmation message.
+
+### 14) Sync Assignment Grade → Grade Book (Teacher)
+POST `{{baseUrl}}/api/{{apiVersion}}/grades/sync-assignment`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{
+  "assignmentId": "<ASSIGNMENT_ID>",
+  "submissionId": "<SUBMISSION_ID>",
+  "studentId": "<STUDENT_USER_ID>"
+}
+```
+Expected: `200 OK`, `{ grade }` created/updated from submission grade, or `null` if submission not graded.
+
+---
+
 ## Common Issues & Tips
 - 401 on protected routes: ensure `Authorization` header is present and `accessToken` is not expired.
 - 401 on refresh: ensure `refreshToken` matches the one stored for the user; if not, log in again.

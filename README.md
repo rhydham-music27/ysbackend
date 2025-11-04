@@ -281,6 +281,76 @@ curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
   -H "Authorization: Bearer ACCESS_TOKEN"
 ```
 
+## Grading System
+
+The grading system provides a unified grade book/transcript that aggregates grades from assignments and manual entries, supports weighted averages, letter grade conversion, and GPA calculation.
+
+- Unified grade book across courses
+- Multiple grade types: assignments, exams, quizzes, manual entries, participation, projects, attendance, final
+- Automatic GPA calculation (4.0 scale)
+- Letter grade conversion (A+ to F)
+- Weighted course-average calculations
+- Course-level statistics and analytics
+- Integration with assignment submission grading and sync
+- RBAC: Teachers manage grades; Students view their own; Managers/Admin view all
+
+### Grading Scale
+
+- A+: 97-100%
+- A: 93-96%
+- A-: 90-92%
+- B+: 87-89%
+- B: 83-86%
+- B-: 80-82%
+- C+: 77-79%
+- C: 73-76%
+- C-: 70-72%
+- D: 60-69%
+- F: Below 60%
+
+GPA conversion:
+
+- A+, A: 4.0
+- A-: 3.7
+- B+: 3.3
+- B: 3.0
+- B-: 2.7
+- C+: 2.3
+- C: 2.0
+- C-: 1.7
+- D: 1.0
+- F: 0.0
+
+### Grade API Endpoints
+
+- POST `/api/v1/grades` — Add grade (Teacher)
+- GET `/api/v1/grades` — List all grades (Teacher+)
+- GET `/api/v1/grades/my` — Get own grades (Student)
+- GET `/api/v1/grades/my/gpa` — Get own GPA (Student)
+- GET `/api/v1/grades/my/courses/:id` — Get own course grade (Student)
+- GET `/api/v1/grades/students/:id` — Get student grades (Teacher+)
+- GET `/api/v1/grades/students/:id/gpa` — Get student GPA (Teacher+)
+- GET `/api/v1/grades/students/:studentId/courses/:courseId` — Get student course grade (Teacher+)
+- GET `/api/v1/grades/courses/:id` — Get course grades (Teacher+)
+- GET `/api/v1/grades/courses/:id/stats` — Get course statistics (Teacher+)
+- GET `/api/v1/grades/:id` — Get grade details (Teacher+)
+- PUT `/api/v1/grades/:id` — Update grade (Teacher)
+- DELETE `/api/v1/grades/:id` — Delete grade (Teacher)
+- POST `/api/v1/grades/sync-assignment` — Sync assignment grade (Teacher)
+
+### Completed Features (updated)
+
+- Comprehensive grading system with grade book
+- Multiple grade types (assignments, exams, quizzes, manual, participation)
+- GPA calculation (4.0 scale)
+- Letter grade conversion (A+ to F)
+- Weighted grade calculations
+- Course-level grade aggregation
+- Grade statistics and analytics
+- Student grade viewing and GPA tracking
+- Teacher grade management
+- Assignment grade synchronization
+
 ### Data Model Relationships
 
 - Assignment → Course (many-to-one)

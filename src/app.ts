@@ -10,6 +10,7 @@ import courseRoutes from './routes/courseRoutes';
 import classRoutes from './routes/classRoutes';
 import attendanceRoutes from './routes/attendanceRoutes';
 import assignmentRoutes from './routes/assignmentRoutes';
+import gradeRoutes from './routes/gradeRoutes';
 import passport from 'passport';
 import { initializePassport } from './config/passport';
 
@@ -64,7 +65,8 @@ app.use(`/api/${apiVersion}/courses`, courseRoutes);
 app.use(`/api/${apiVersion}/classes-sessions`, classRoutes);
 app.use(`/api/${apiVersion}/attendance`, attendanceRoutes);
 app.use(`/api/${apiVersion}/assignments`, assignmentRoutes);
-// Future routes: grades, schedules, notifications, reports, etc.
+app.use(`/api/${apiVersion}/grades`, gradeRoutes);
+// Future routes: schedules, notifications, reports, etc.
 
 // 404 handler
 app.use((req: Request, res: Response) => {
