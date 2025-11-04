@@ -192,6 +192,16 @@ Notes:
 - GET `/api/v1/attendance/my/stats` — Get own stats (Student)
 - DELETE `/api/v1/attendance/:id` — Delete attendance (Manager, Admin)
 
+### Coordinator Dashboard
+
+- GET `/api/v1/coordinator/dashboard` — Coordinator dashboard (Coordinator)
+- GET `/api/v1/coordinator/classes` — Assigned classes (Coordinator)
+- GET `/api/v1/coordinator/schedule` — Weekly schedule (Coordinator)
+- GET `/api/v1/coordinator/classes/:id/attendance` — Class attendance overview (Coordinator)
+- GET `/api/v1/coordinator/classes/:id/students` — Class student list (Coordinator)
+- POST `/api/v1/coordinator/classes/:id/announcement` — Send class announcement (Coordinator)
+- PATCH `/api/v1/coordinator/classes/:id/assign` — Assign coordinator to class (Manager, Admin)
+
 ## Assignment and Homework Management
 
 The assignment system enables teachers to create, publish, and grade assignments linked to courses, while students can view and submit their work.
@@ -1182,8 +1192,147 @@ Higher roles inherit lower role capabilities. Manager can perform all Teacher op
 - Rejection requires approval notes (explanation required)
 - All approval actions are tracked with `approvedBy` and `approvalDate`
 
+## Class Coordinator Dashboard APIs (Phase 16)
+
+The coordinator dashboard system provides class-level management and coordination capabilities for coordinators to monitor attendance, coordinate schedules, and communicate with students in their assigned classes. All coordinator operations are protected with RBAC using `authorize(UserRole.COORDINATOR)` for coordinator-only access, with service-layer validation ensuring coordinators can only access their assigned classes.
+
+### Features
+
+- **Class Assignment**: Admin/Manager can assign coordinators to specific classes
+- **Coordinator Dashboard**: Comprehensive overview of assigned classes, upcoming classes, total students, today's attendance, and low attendance students
+- **Attendance Monitoring**: View attendance overview for each assigned class with detailed statistics
+- **Student Communication**: Send announcements to all or specific students in assigned classes via notification system
+- **Schedule Coordination**: View weekly schedule for all assigned classes across different courses
+- **Low Attendance Identification**: Automatically identifies students with attendance rate below 75%
+- **RBAC Enforcement**: Coordinator-only access with class-level assignment validation
+
+### Coordinator Workflows
+
+1. **Coordinator Assignment:**
+   - Admin/Manager assigns coordinator to specific classes via PATCH `/api/v1/coordinator/classes/:id/assign`
+   - Coordinator field added to Class model
+   - Coordinator receives access to assigned classes only
+
+2. **Daily Coordination:**
+   - Coordinator logs in and views dashboard via GET `/api/v1/coordinator/dashboard`
+   - Sees assigned classes (upcoming, in-progress, completed)
+   - Views today's attendance status (marked vs pending)
+   - Identifies students with low attendance rates
+   - Reviews weekly schedule for assigned classes
+
+3. **Attendance Monitoring:**
+   - Coordinator views attendance overview for each class via GET `/api/v1/coordinator/classes/:id/attendance`
+   - Sees which students are present, absent, late, or unmarked
+   - Identifies attendance patterns and issues
+   - Can communicate with students about attendance
+
+4. **Student Communication:**
+   - Coordinator sends announcements to class students via POST `/api/v1/coordinator/classes/:id/announcement`
+   - Can target all students or specific students
+   - Announcements sent via notification system (email + in-app)
+   - Useful for class reminders, schedule changes, important updates
+
+5. **Schedule Coordination:**
+   - Coordinator views weekly schedule for assigned classes via GET `/api/v1/coordinator/schedule`
+   - Sees all classes grouped by day and time
+   - Helps coordinate logistics (rooms, resources, timing)
+   - Identifies scheduling conflicts or issues
+
+### Coordinator vs Teacher
+
+- **Teacher (Level 3):**
+  - Focuses on teaching and academic content
+  - Creates courses and assignments
+  - Grades student work
+  - Marks attendance
+  - Manages course curriculum
+
+- **Coordinator (Level 3 - Parallel Role):**
+  - Focuses on class logistics and coordination
+  - Monitors attendance across assigned classes
+  - Communicates with students about logistics
+  - Coordinates schedules and resources
+  - Identifies and addresses attendance issues
+  - Does not grade or create assignments
+
+- **Collaboration:**
+  - Classes can have both teacher (academic) and coordinator (logistics)
+  - Teacher handles content, coordinator handles operations
+  - Both can mark attendance (teacher for academic tracking, coordinator for logistics)
+  - Coordinator supports teacher by managing class logistics
+
+### Class Assignment Model
+
+- **Class Model Fields:**
+  - teacher: Required (teaches the class, creates content)
+  - coordinator: Optional (manages class logistics)
+
+- **Assignment Scenarios:**
+  - Class with teacher only (teacher handles everything)
+  - Class with teacher + coordinator (divided responsibilities)
+  - Multiple classes can share same coordinator
+  - Coordinator can be assigned to classes across different courses
+
+- **Access Control:**
+  - Coordinators can only access their assigned classes
+  - Validated via `validateCoordinatorClassAccess` in service layer
+  - Prevents coordinators from accessing other coordinators' classes
+
+### Coordinator Dashboard API Endpoints
+
+**Dashboard:**
+- GET `/api/v1/coordinator/dashboard` — Coordinator dashboard (Coordinator)
+- GET `/api/v1/coordinator/classes` — Assigned classes (Coordinator)
+- GET `/api/v1/coordinator/schedule` — Weekly schedule (Coordinator)
+
+**Class Management:**
+- GET `/api/v1/coordinator/classes/:id/attendance` — Class attendance overview (Coordinator)
+- GET `/api/v1/coordinator/classes/:id/students` — Class student list (Coordinator)
+
+**Student Communication:**
+- POST `/api/v1/coordinator/classes/:id/announcement` — Send class announcement (Coordinator)
+
+**Coordinator Assignment (Admin/Manager):**
+- PATCH `/api/v1/coordinator/classes/:id/assign` — Assign coordinator to class (Manager, Admin)
+
+### Dashboard Response Format
+
+```json
+{
+  "success": true,
+  "data": {
+    "dashboard": {
+      "assignedClasses": 10,
+      "upcomingClasses": 5,
+      "totalStudents": 150,
+      "attendanceToday": {
+        "total": 50,
+        "marked": 45,
+        "pending": 5
+      },
+      "lowAttendanceStudents": [
+        {
+          "studentId": "...",
+          "studentName": "John Doe",
+          "attendanceRate": 65.5
+        }
+      ],
+      "recentClasses": [...]
+    }
+  }
+}
+```
+
+### Security Best Practices
+
+- All coordinator endpoints use `authorize(UserRole.COORDINATOR)` for coordinator-only access
+- Service layer validates coordinator has access to specific classes (assigned classes only)
+- Coordinators can only access classes where `class.coordinator === coordinatorId`
+- Coordinator assignment endpoint uses `authorizeMinRole(UserRole.MANAGER)` to allow Manager and Admin
+- Prevents coordinators from accessing other coordinators' classes
+
 ### Progress Tracker
 
-- Phase 15 complete: Manager Dashboard APIs
-- 15/18 phases completed
-- Next phase: Phase 16 — Class Coordinator-Specific APIs
+- Phase 16 complete: Class Coordinator-Specific APIs
+- 16/18 phases completed
+- Next phase: Phase 17 — Student Portal APIs

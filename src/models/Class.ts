@@ -15,6 +15,7 @@ export interface IClass extends Document {
   title: string;
   description?: string;
   teacher: mongoose.Types.ObjectId;
+  coordinator?: mongoose.Types.ObjectId;
   students: mongoose.Types.ObjectId[];
   scheduledDate: Date;
   startTime: Date;
@@ -45,6 +46,7 @@ export interface IClassModel extends Model<IClass> {
   findByCourse(courseId: string): Promise<IClass[]>;
   findByTeacher(teacherId: string): Promise<IClass[]>;
   findByStudent(studentId: string): Promise<IClass[]>;
+  findByCoordinator(coordinatorId: string): Promise<IClass[]>;
   findUpcoming(): Promise<IClass[]>;
 }
 
@@ -66,6 +68,7 @@ const ClassSchema = new Schema<IClass, IClassModel>(
     title: { type: String, required: true, trim: true, minlength: 3, maxlength: 200 },
     description: { type: String, trim: true },
     teacher: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    coordinator: { type: Schema.Types.ObjectId, ref: 'User', index: true },
     students: { type: [Schema.Types.ObjectId], ref: 'User', default: [] },
     scheduledDate: { type: Date, required: true, index: true },
     startTime: { type: Date, required: true },
@@ -95,6 +98,7 @@ ClassSchema.pre('save', function (next) {
 // Indexes
 ClassSchema.index({ course: 1, scheduledDate: 1 });
 ClassSchema.index({ teacher: 1, scheduledDate: 1 });
+ClassSchema.index({ coordinator: 1, scheduledDate: 1 });
 ClassSchema.index({ students: 1, scheduledDate: 1 });
 ClassSchema.index({ status: 1, scheduledDate: 1 });
 
@@ -140,6 +144,10 @@ ClassSchema.statics.findByTeacher = function (teacherId: string) {
 
 ClassSchema.statics.findByStudent = function (studentId: string) {
   return this.find({ students: new mongoose.Types.ObjectId(studentId) });
+};
+
+ClassSchema.statics.findByCoordinator = function (coordinatorId: string) {
+  return this.find({ coordinator: new mongoose.Types.ObjectId(coordinatorId) }).sort({ scheduledDate: 1 });
 };
 
 ClassSchema.statics.findUpcoming = function () {

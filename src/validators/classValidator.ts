@@ -7,6 +7,7 @@ export const createClassValidation: ValidationChain[] = [
   body('title').notEmpty().withMessage('Class title is required').trim().isLength({ min: 3, max: 200 }).withMessage('Title must be 3-200 characters'),
   body('description').optional().trim().isString().withMessage('Description must be a string'),
   body('teacher').notEmpty().withMessage('Teacher is required').isMongoId().withMessage('Invalid teacher ID'),
+  body('coordinator').optional().isMongoId().withMessage('Invalid coordinator ID'),
   body('scheduledDate').notEmpty().withMessage('Scheduled date is required').isISO8601().toDate().withMessage('Invalid scheduled date'),
   body('startTime').notEmpty().withMessage('Start time is required').isISO8601().toDate().withMessage('Invalid start time'),
   body('endTime').notEmpty().withMessage('End time is required').isISO8601().toDate().withMessage('Invalid end time'),
@@ -30,6 +31,7 @@ export const createClassValidation: ValidationChain[] = [
 export const updateClassValidation: ValidationChain[] = [
   body('title').optional().trim().isLength({ min: 3, max: 200 }).withMessage('Title must be 3-200 characters'),
   body('description').optional().trim().isString().withMessage('Description must be a string'),
+  body('coordinator').optional().isMongoId().withMessage('Invalid coordinator ID'),
   body('scheduledDate').optional().isISO8601().toDate().withMessage('Invalid scheduled date'),
   body('startTime').optional().isISO8601().toDate().withMessage('Invalid start time'),
   body('endTime').optional().isISO8601().toDate().withMessage('Invalid end time'),

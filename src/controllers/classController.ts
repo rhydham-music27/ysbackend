@@ -3,17 +3,24 @@ import mongoose from 'mongoose';
 import Class from '../models/Class';
 import Course from '../models/Course';
 import User from '../models/User';
-import { ClassStatus } from '../types/enums';
+import { ClassStatus, UserRole } from '../types/enums';
 
 export async function createClass(req: Request, res: Response, next: NextFunction) {
   try {
-    const { course, teacher } = req.body as { course: string; teacher: string };
+    const { course, teacher, coordinator } = req.body as { course: string; teacher: string; coordinator?: string };
     const courseDoc = await Course.findById(course);
     if (!courseDoc) return res.status(404).json({ success: false, message: 'Course not found' });
 
     const teacherDoc = await User.findById(teacher);
     if (!teacherDoc || (teacherDoc as any).role !== 'teacher') {
       return res.status(400).json({ success: false, message: 'Invalid teacher' });
+    }
+
+    if (coordinator) {
+      const coordinatorDoc = await User.findById(coordinator);
+      if (!coordinatorDoc || coordinatorDoc.role !== UserRole.COORDINATOR) {
+        return res.status(400).json({ success: false, message: 'Invalid coordinator' });
+      }
     }
 
     if (!req.body.maxStudents && courseDoc.maxStudents) {
@@ -23,7 +30,8 @@ export async function createClass(req: Request, res: Response, next: NextFunctio
     const classDoc = await Class.create(req.body);
     await classDoc
       .populate('course', 'name code')
-      .populate('teacher', 'profile.firstName profile.lastName email');
+      .populate('teacher', 'profile.firstName profile.lastName email')
+      .populate('coordinator', 'profile.firstName profile.lastName email');
 
     res.status(201).json({ success: true, message: 'Class created successfully', data: { class: classDoc } });
   } catch (error) {
@@ -72,9 +80,19 @@ export async function getClass(req: Request, res: Response, next: NextFunction) 
 export async function updateClass(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
+    const { coordinator } = req.body as { coordinator?: string };
+
+    if (coordinator) {
+      const coordinatorDoc = await User.findById(coordinator);
+      if (!coordinatorDoc || coordinatorDoc.role !== UserRole.COORDINATOR) {
+        return res.status(400).json({ success: false, message: 'Invalid coordinator' });
+      }
+    }
+
     const classDoc = await Class.findByIdAndUpdate(id, req.body, { new: true, runValidators: true })
       .populate('course', 'name code')
-      .populate('teacher', 'profile.firstName profile.lastName email');
+      .populate('teacher', 'profile.firstName profile.lastName email')
+      .populate('coordinator', 'profile.firstName profile.lastName email');
     if (!classDoc) return res.status(404).json({ success: false, message: 'Class not found' });
     res.status(200).json({ success: true, message: 'Class updated successfully', data: { class: classDoc } });
   } catch (error) {
