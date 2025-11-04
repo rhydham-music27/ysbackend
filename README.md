@@ -317,6 +317,15 @@ curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
 - Mongoose aggregation pipelines for complex queries
 - Date range filtering for time-based analysis
 - RBAC-enforced report access control
+- Admin dashboard APIs
+- User management (CRUD all users, role assignment, activation/deactivation)
+- System settings management (platform configuration, feature flags)
+- Bulk operations (user import up to 100, student enrollment up to 100)
+- Comprehensive audit logging for all admin actions
+- User statistics and analytics
+- Audit log retention (90 days with automatic cleanup)
+- IP address and user agent tracking for security
+- Strict admin-only RBAC enforcement
 
 ### Data Model Relationships
 
@@ -693,6 +702,32 @@ The notification system provides dual-channel notifications (email and in-app) f
 - GET `/api/v1/reports/classes/:id/performance` - Class performance (Teacher+)
 - GET `/api/v1/reports/dashboard` - Dashboard summary (All authenticated)
 
+### Admin Dashboard APIs
+
+#### User Management
+- POST `/api/v1/admin/users` - Create user (Admin only)
+- GET `/api/v1/admin/users` - List all users (Admin only)
+- GET `/api/v1/admin/users/stats` - User statistics (Admin only)
+- GET `/api/v1/admin/users/:id` - Get user by ID (Admin only)
+- PUT `/api/v1/admin/users/:id` - Update user (Admin only)
+- DELETE `/api/v1/admin/users/:id` - Delete user (Admin only)
+- PATCH `/api/v1/admin/users/:id/role` - Assign role (Admin only)
+- PATCH `/api/v1/admin/users/:id/activate` - Activate user (Admin only)
+- PATCH `/api/v1/admin/users/:id/deactivate` - Deactivate user (Admin only)
+
+#### Bulk Operations
+- POST `/api/v1/admin/bulk/import-users` - Bulk import users (Admin only)
+- POST `/api/v1/admin/bulk/enroll-students` - Bulk enroll students (Admin only)
+
+#### System Settings
+- GET `/api/v1/admin/settings` - Get system settings (Admin only)
+- PUT `/api/v1/admin/settings/:key` - Update setting (Admin only)
+- DELETE `/api/v1/admin/settings/:key` - Delete setting (Admin only)
+
+#### Audit Logs
+- GET `/api/v1/admin/audit-logs` - Get audit logs (Admin only)
+- GET `/api/v1/admin/audit-logs/my` - Get own audit logs (Admin only)
+
 ### Notification Triggers
 
 Notifications are automatically triggered in the following scenarios:
@@ -835,8 +870,141 @@ These pipelines leverage existing indexes for optimal performance.
 - Caching for frequently accessed reports (future enhancement)
 - Background job for pre-computing complex reports (future enhancement)
 
+## Admin Dashboard APIs (Phase 14)
+
+The admin dashboard system provides comprehensive user management, system settings management, bulk operations, and audit logging for platform administrators. All admin operations are strictly protected with admin-only RBAC enforcement and automatic audit trail tracking.
+
+### Features
+
+- **Comprehensive user management**: CRUD all users, role assignment, activation/deactivation
+- **System settings management**: Platform configuration, feature flags, type-safe settings
+- **Bulk operations**: User import (up to 100 per request), student enrollment (up to 100 per request)
+- **Comprehensive audit logging**: All admin actions tracked with IP address and user agent
+- **User statistics and analytics**: Total users, by role, active/inactive, recent registrations
+- **Strict admin-only RBAC enforcement**: Only exact admin role match (no hierarchical access)
+- **Automatic audit trail**: Immutable logs with 90-day retention and automatic cleanup
+- **IP address and user agent tracking**: Security auditing for all admin actions
+
+### Admin Workflows
+
+#### 1. User Management
+- Admin creates new user with specific role
+- Admin can update user details (email, role, profile)
+- Admin can activate/deactivate users (soft delete)
+- Admin can assign/change user roles
+- All actions are automatically logged in audit trail
+
+#### 2. Bulk Operations
+- Admin uploads CSV/JSON with user data
+- System validates all users before import
+- Bulk import creates up to 100 users at once
+- Returns success/failure report for each user
+- Admin can bulk enroll students in courses
+- Partial success supported (some succeed, some fail)
+
+#### 3. System Settings
+- Admin views all platform settings grouped by category
+- Admin updates feature flags (e.g., ENABLE_REGISTRATION)
+- Admin configures limits (e.g., MAX_FILE_SIZE, MAX_STUDENTS_PER_COURSE)
+- Settings are type-safe (boolean, string, number, JSON)
+- All setting changes are audit logged
+
+#### 4. Audit Logs
+- Admin views all admin actions across the platform
+- Can filter by admin, action type, target user, date range
+- Each log includes: action, performer, target, timestamp, metadata
+- Logs are immutable (cannot be edited or deleted)
+- Automatic cleanup after 90 days
+
+### Audit Logging
+
+#### Tracked Actions
+- USER_CREATED, USER_UPDATED, USER_DELETED
+- ROLE_ASSIGNED, USER_ACTIVATED, USER_DEACTIVATED
+- BULK_USER_IMPORT, BULK_ENROLLMENT
+- SETTINGS_UPDATED, SYSTEM_CONFIG_CHANGED
+
+#### Logged Information
+- Action type and description
+- Admin who performed action (performedBy)
+- Target resource and resource ID
+- Old and new values (for updates)
+- IP address and user agent
+- Timestamp and success status
+- Error message if action failed
+
+#### Retention Policy
+- Audit logs retained for 90 days
+- Automatic cleanup via MongoDB TTL index
+- Configurable retention period in SystemSettings
+
+#### Compliance
+- Immutable logs (no updates or deletes)
+- Complete audit trail for security and compliance
+- Supports forensic analysis and accountability
+
+### System Settings
+
+#### Setting Types
+- **BOOLEAN**: Feature flags (e.g., ENABLE_REGISTRATION, ENABLE_OAUTH)
+- **STRING**: Text configurations (e.g., PLATFORM_NAME, SUPPORT_EMAIL)
+- **NUMBER**: Numeric limits (e.g., MAX_FILE_SIZE, MAX_STUDENTS_PER_COURSE)
+- **JSON**: Complex configurations (e.g., EMAIL_TEMPLATES, NOTIFICATION_PREFERENCES)
+
+#### Setting Categories
+- **feature_flags**: Enable/disable platform features
+- **limits**: Resource limits and quotas
+- **email**: Email service configuration
+- **security**: Security settings (password policy, session timeout)
+- **ui**: Frontend configuration (theme, branding)
+
+#### Public Settings
+- Some settings can be marked as public (isPublic: true)
+- Public settings are accessible to non-admin users
+- Useful for frontend configuration (e.g., ENABLE_REGISTRATION)
+
+#### Default Settings
+- System can be seeded with default settings on first deployment
+- Settings can be updated via admin API
+
+### Bulk Operations
+
+#### Bulk User Import
+- Import up to 100 users per request
+- Supports CSV or JSON format (frontend converts to JSON)
+- Validates all users before import
+- Returns detailed success/failure report
+- Failed users include reason (duplicate email, validation error)
+- Successful users are created with hashed passwords
+- All imports are audit logged
+
+#### Bulk Student Enrollment
+- Enroll up to 100 students in a course per request
+- Validates student existence and role
+- Checks course capacity
+- Prevents duplicate enrollments
+- Returns detailed success/failure report
+- All enrollments are audit logged
+
+#### Partial Success Handling
+- Bulk operations support partial success
+- Some records succeed while others fail
+- Detailed error reporting for failed records
+- Allows admin to fix issues and retry failed records
+
+### Security Best Practices
+
+- All admin endpoints require authentication AND admin role
+- No hierarchical access (only exact admin role match)
+- All admin actions are audit logged (immutable trail)
+- IP address and user agent tracked for security
+- Cannot delete admin users (only deactivate)
+- Cannot delete users with dependencies (data integrity)
+- Soft delete (deactivation) preferred over hard delete
+- Audit logs retained for 90 days for compliance
+
 ### Progress Tracker
 
-- Phase 13 complete: Reports and Analytics APIs
-- 13/18 phases completed
-- Next phase: Phase 14 — Admin Dashboard APIs
+- Phase 14 complete: Admin Dashboard APIs
+- 14/18 phases completed
+- Next phase: Phase 15 — Manager-Specific APIs
