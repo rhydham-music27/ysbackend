@@ -136,6 +136,5 @@ AttendanceSchema.statics.getAttendanceStats = async function (studentId: string)
 const Attendance = mongoose.model<IAttendance, IAttendanceModel>('Attendance', AttendanceSchema);
 
 export default Attendance;
-export { IAttendance };
 
 
