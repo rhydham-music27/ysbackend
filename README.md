@@ -158,16 +158,7 @@ Notes:
 - POST `/api/v1/classes/convert` — Convert an approved + paid lead into a final class (protected)
   - Body: `{ leadId, cityCode, tutorAssigned?, tutorTier?, firstMonthStartDate?, monthStartDate? }`
 
-### Courses
-- POST `/api/v1/courses` — Create course (Admin/Manager)
-- GET `/api/v1/courses` — List courses (auth)
-- GET `/api/v1/courses/my` — Get my courses (Teacher/Student)
-- GET `/api/v1/courses/:id` — Get course by id (auth)
-- PUT `/api/v1/courses/:id` — Update course (Admin/Manager)
-- DELETE `/api/v1/courses/:id` — Delete course (Admin; only if no students)
-- POST `/api/v1/courses/:id/enroll` — Enroll student (Admin/Manager/Teacher)
-- POST `/api/v1/courses/:id/unenroll` — Unenroll student (Admin/Manager/Teacher)
-- GET `/api/v1/courses/:id/capacity` — Check course capacity (auth)
+
 
 ### Class Sessions
 - POST `/api/v1/classes-sessions` — Create class session (Admin/Manager/Coordinator)
@@ -205,7 +196,7 @@ The assignment system enables teachers to create, publish, and grade assignments
 - Submission statuses: Not Submitted, Submitted, Late, Graded, Resubmitted
 
 ### Assignment Workflow
-1. **Teacher creates assignment:**
+1. **Test Teacher creates assignment:**
    - Create in draft mode with title, description, due date, and max grade
    - Optionally add attachments and instructions
    - Publish to make it visible to students
@@ -281,62 +272,7 @@ curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
   -H "Authorization: Bearer ACCESS_TOKEN"
 ```
 
-## Grading System
 
-The grading system provides a unified grade book/transcript that aggregates grades from assignments and manual entries, supports weighted averages, letter grade conversion, and GPA calculation.
-
-- Unified grade book across courses
-- Multiple grade types: assignments, exams, quizzes, manual entries, participation, projects, attendance, final
-- Automatic GPA calculation (4.0 scale)
-- Letter grade conversion (A+ to F)
-- Weighted course-average calculations
-- Course-level statistics and analytics
-- Integration with assignment submission grading and sync
-- RBAC: Teachers manage grades; Students view their own; Managers/Admin view all
-
-### Grading Scale
-
-- A+: 97-100%
-- A: 93-96%
-- A-: 90-92%
-- B+: 87-89%
-- B: 83-86%
-- B-: 80-82%
-- C+: 77-79%
-- C: 73-76%
-- C-: 70-72%
-- D: 60-69%
-- F: Below 60%
-
-GPA conversion:
-
-- A+, A: 4.0
-- A-: 3.7
-- B+: 3.3
-- B: 3.0
-- B-: 2.7
-- C+: 2.3
-- C: 2.0
-- C-: 1.7
-- D: 1.0
-- F: 0.0
-
-### Grade API Endpoints
-
-- POST `/api/v1/grades` — Add grade (Teacher)
-- GET `/api/v1/grades` — List all grades (Teacher+)
-- GET `/api/v1/grades/my` — Get own grades (Student)
-- GET `/api/v1/grades/my/gpa` — Get own GPA (Student)
-- GET `/api/v1/grades/my/courses/:id` — Get own course grade (Student)
-- GET `/api/v1/grades/students/:id` — Get student grades (Teacher+)
-- GET `/api/v1/grades/students/:id/gpa` — Get student GPA (Teacher+)
-- GET `/api/v1/grades/students/:studentId/courses/:courseId` — Get student course grade (Teacher+)
-- GET `/api/v1/grades/courses/:id` — Get course grades (Teacher+)
-- GET `/api/v1/grades/courses/:id/stats` — Get course statistics (Teacher+)
-- GET `/api/v1/grades/:id` — Get grade details (Teacher+)
-- PUT `/api/v1/grades/:id` — Update grade (Teacher)
-- DELETE `/api/v1/grades/:id` — Delete grade (Teacher)
-- POST `/api/v1/grades/sync-assignment` — Sync assignment grade (Teacher)
 
 ### Completed Features (updated)
 
@@ -353,7 +289,7 @@ GPA conversion:
 
 ### Data Model Relationships
 
-- Assignment → Course (many-to-one)
+- Assignment → Class (many-to-one)
 - Assignment → Teacher/User (many-to-one, creator)
 - Submission (embedded) → Student/User (many-to-one)
 - Submission (embedded) → GradedBy/User (many-to-one)
@@ -479,3 +415,66 @@ This project is licensed under the MIT License.
 8. Test the flow in your browser
 
 
+
+## Scheduling and Timetable Management
+
+The scheduling system provides recurring weekly schedule management (master timetable), conflict detection for teacher and room overlaps, and integration with the `Class` model to generate specific class instances.
+
+- Recurring weekly schedule templates
+- Conflict detection (teacher and room)
+- Recurrence patterns: weekly, biweekly, custom
+- Effective date ranges for semesters (effectiveFrom/effectiveTo)
+- Integration with `Class` model (generate instances)
+- RBAC: Admin, Manager, Coordinator manage; Teachers/Students view
+- Weekly and daily timetable views
+
+### Schedule vs Class
+
+- **Schedule**: Recurring weekly pattern (e.g., "Math every Monday 9-10 AM in Room 101"). Used for planning and timetables.
+- **Class**: Specific occurrence (e.g., "Math on Jan 15, 2024, 9-10 AM in Room 101"). Used for attendance/materials/recordings.
+- Schedules can generate Class instances for a date range.
+
+### Conflict Detection Algorithm
+
+- **Teacher Conflict**: A teacher cannot have overlapping classes on the same day.
+- **Room Conflict**: A room cannot be double-booked for overlapping times on the same day.
+- **Overlap Rule**: Two time ranges overlap if `(start1 < end2) AND (end1 > start2)`.
+- Example: 09:00-10:30 overlaps 10:00-11:00.
+
+### Scheduling Workflow
+
+1. Admin/Manager/Coordinator creates a schedule with course, teacher, day, time, room.
+2. System checks conflicts (teacher/room) and saves if none.
+3. Users view weekly/daily timetables (filter by teacher, course, room, day).
+4. Optionally generate `Class` instances for a semester date range.
+
+### Schedule API Endpoints
+
+- POST `/api/v1/schedules` — Create schedule (Admin, Manager, Coordinator)
+- GET `/api/v1/schedules` — List schedules (All authenticated)
+- GET `/api/v1/schedules/my` — Get own schedule (Teacher)
+- GET `/api/v1/schedules/weekly` — Get weekly timetable (All authenticated)
+- POST `/api/v1/schedules/check-conflicts` — Check conflicts (Admin, Manager, Coordinator)
+- GET `/api/v1/schedules/teachers/:id` — Get teacher schedules (Teacher+)
+- GET `/api/v1/schedules/courses/:id` — Get course schedules (All authenticated)
+- GET `/api/v1/schedules/days/:day` — Get day schedules (All authenticated)
+- GET `/api/v1/schedules/:id` — Get schedule details (All authenticated)
+- PUT `/api/v1/schedules/:id` — Update schedule (Admin, Manager, Coordinator)
+- DELETE `/api/v1/schedules/:id` — Delete schedule (soft; Admin, Manager)
+- POST `/api/v1/schedules/:id/generate-classes` — Generate class instances (Admin, Manager, Coordinator)
+
+### Completed Features (update)
+
+- Scheduling and timetable management system
+- Recurring weekly schedule templates
+- Teacher and room conflict detection
+- Weekly and daily timetable views
+- Semester-based scheduling (effective date ranges)
+- Schedule-to-Class instance generation
+- Soft delete for schedule deactivation
+
+### Progress Tracker
+
+- Phase 10 complete: Scheduling and Timetable Management
+- 10/18 phases completed
+- Next phase: Phase 11 — File Upload Integration with Cloudinary

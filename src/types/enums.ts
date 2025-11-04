@@ -58,6 +58,12 @@ export enum DayOfWeek {
   SUNDAY = 'sunday',
 }
 
+export enum RecurrenceType {
+  WEEKLY = 'weekly',
+  BIWEEKLY = 'biweekly',
+  CUSTOM = 'custom',
+}
+
 export enum AttendanceStatus {
   PRESENT = 'present',
   ABSENT = 'absent',
