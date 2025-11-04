@@ -2,6 +2,8 @@ import { Router } from 'express';
 import passport from '../config/passport';
 import { getCurrentUser, login, logout, refreshToken, register, googleOAuthCallback, googleOAuthFailure, googleOAuthInitiate } from '../controllers/authController';
 import authenticate from '../middlewares/auth';
+import authorize, { authorizeMinRole } from '../middlewares/rbac';
+import { UserRole } from '../types/enums';
 import {
   handleValidationErrors,
   loginValidation,
@@ -81,6 +83,27 @@ router.post('/logout', authenticate, logout);
  * @returns { success, data: { user } }
  */
 router.get('/me', authenticate, getCurrentUser);
+
+/**
+ * @route   GET /api/v1/auth/admin/test
+ * @desc    RBAC demo route - admin only access
+ * @access  Private (Admin only)
+ * @returns { success, message, user }
+ */
+router.get('/admin/test', authenticate, authorize(UserRole.ADMIN), (req, res) => {
+  return res.json({ success: true, message: 'Admin access granted', user: (req as any).user });
+});
+
+/**
+ * @route   GET /api/v1/auth/staff/test
+ * @desc    RBAC demo route - minimum TEACHER level (TEACHER, COORDINATOR, MANAGER, ADMIN)
+ * @access  Private (Teacher+)
+ * @returns { success, message, role }
+ */
+router.get('/staff/test', authenticate, authorizeMinRole(UserRole.TEACHER), (req, res) => {
+  const role = (req as any).user?.role;
+  return res.json({ success: true, message: 'Staff access granted', role });
+});
 
 export default router;
 

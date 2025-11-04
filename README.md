@@ -36,7 +36,7 @@ npm install
 ```
 
 #### Environment Setup
-1. Copy the example environment file and fill values:
+1. Copy the example environment file a+nd fill values:
 ```bash
 cp .env.example .env
 ```
@@ -93,6 +93,46 @@ Notes:
 - OAuth users have `isEmailVerified = true`
 - Deactivated accounts cannot log in
 
+## Authorization (RBAC)
+
+This project implements Role-Based Access Control with a hierarchical model:
+
+- Admin (highest) > Manager > Teacher/Coordinator (parallel) > Student (lowest)
+- Two patterns are supported: exact role match and minimum role level
+
+### Role Hierarchy
+- **Admin (Level 5)**: Full system access, user management, all permissions
+- **Manager (Level 4)**: Oversee teachers, manage courses, view reports
+- **Teacher (Level 3)**: Create/grade assignments, mark attendance, manage assigned courses
+- **Coordinator (Level 3)**: Schedule classes, monitor attendance, coordinate students (parallel to Teacher)
+- **Student (Level 1)**: View courses, submit assignments, view own grades and attendance
+
+### Authorization Middleware
+- `authorize(...roles)`: Exact role match (e.g., `authorize(UserRole.ADMIN, UserRole.MANAGER)`)
+- `authorizeMinRole(role)`: Minimum role level (e.g., `authorizeMinRole(UserRole.MANAGER)` allows Manager and Admin)
+- `authorizePermission(...permissions)`: Permission-based (future use)
+- `authorizeOwnership(field)`: Resource ownership check (future use)
+- `adminOnly()`: Shortcut for admin-only routes
+
+All authorization middleware must be used after `authenticate` so `req.user` is populated.
+
+### Usage Examples
+```ts
+// Admin-only route
+router.delete('/users/:id', authenticate, authorize(UserRole.ADMIN), deleteUser);
+
+// Manager and Admin can access
+router.get('/reports', authenticate, authorizeMinRole(UserRole.MANAGER), getReports);
+
+// Teachers and Coordinators can mark attendance
+router.post('/attendance', authenticate, authorize(UserRole.TEACHER, UserRole.COORDINATOR), markAttendance);
+```
+
+### API Endpoints (Notes)
+- All endpoints (except public auth routes) require authentication
+- Role-based authorization is enforced on protected endpoints
+- See Authorization section for role/permission guidance
+
 ## API Endpoints
 
 - POST `/api/v1/auth/register` — Register new user
@@ -133,6 +173,13 @@ Google OAuth (add these):
 - `FRONTEND_URL` (optional redirect target for OAuth web flows)
 
 Note: Use strong, unique secrets for JWT; you can generate with `openssl rand -base64 32`.
+
+## Security Best Practices
+- Always use `authenticate` before any authorization middleware
+- Use `authorize()` for exact role matching
+- Use `authorizeMinRole()` for hierarchical access
+- Combine authorization checks for complex scenarios (e.g., admin or owner)
+- Thoroughly test authorization logic for each endpoint
 
 ## Testing Authentication (dev examples)
 

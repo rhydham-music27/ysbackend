@@ -13,6 +13,27 @@ export enum OAuthProvider {
   GITHUB = 'github',
 }
 
+// Resource/action enums for future permission-based authorization (Phase 5+)
+export enum ResourceType {
+  COURSE = 'course',
+  CLASS = 'class',
+  ASSIGNMENT = 'assignment',
+  ATTENDANCE = 'attendance',
+  GRADE = 'grade',
+  SCHEDULE = 'schedule',
+  USER = 'user',
+  NOTIFICATION = 'notification',
+  REPORT = 'report',
+}
+
+export enum ActionType {
+  CREATE = 'create',
+  READ = 'read',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  MANAGE = 'manage',
+}
+
 // Future enums (placeholders for subsequent phases):
 // export enum AttendanceStatus { PRESENT = 'present', ABSENT = 'absent', LATE = 'late' }
 // export enum CourseStatus { ACTIVE = 'active', INACTIVE = 'inactive', COMPLETED = 'completed' }
