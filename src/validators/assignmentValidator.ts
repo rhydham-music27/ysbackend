@@ -77,6 +77,20 @@ export const assignmentQueryValidation: ValidationChain[] = [
   query('dueBefore').optional().isISO8601().toDate().withMessage('Invalid dueBefore date format'),
 ];
 
+export const deleteAssignmentMaterialValidation: ValidationChain[] = [
+  body('fileUrl')
+    .notEmpty()
+    .withMessage('File URL is required')
+    .isURL()
+    .withMessage('Invalid file URL')
+    .custom((value) => {
+      if (!value.includes('cloudinary.com')) {
+        throw new Error('File URL must be a valid Cloudinary URL');
+      }
+      return true;
+    }),
+];
+
 export function handleAssignmentValidationErrors(req: Request, res: Response, next: NextFunction) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

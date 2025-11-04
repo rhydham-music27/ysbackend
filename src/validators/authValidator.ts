@@ -50,6 +50,38 @@ export const changePasswordValidation: ValidationChain[] = [
   body('confirmPassword').custom((value, { req }) => value === req.body.newPassword).withMessage('Passwords do not match'),
 ];
 
+export const updateProfileValidation: ValidationChain[] = [
+  body('firstName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('First name must be 2-50 characters'),
+  body('lastName')
+    .optional()
+    .trim()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Last name must be 2-50 characters'),
+  body('phone').optional().isMobilePhone('any').withMessage('Invalid phone number'),
+  body('dateOfBirth').optional().isISO8601().toDate().withMessage('Invalid date of birth format'),
+  body('address.street').optional().isString().trim().withMessage('Street must be a string'),
+  body('address.city').optional().isString().trim().withMessage('City must be a string'),
+  body('address.state').optional().isString().trim().withMessage('State must be a string'),
+  body('address.zipCode').optional().isString().trim().withMessage('Zip code must be a string'),
+  body('address.country').optional().isString().trim().withMessage('Country must be a string'),
+  body('firstName').custom((value, { req }) => {
+    if (
+      !value &&
+      !req.body.lastName &&
+      !req.body.phone &&
+      !req.body.dateOfBirth &&
+      !req.body.address
+    ) {
+      throw new Error('At least one field must be provided for update');
+    }
+    return true;
+  }),
+];
+
 export function handleValidationErrors(req: Request, res: Response, next: NextFunction) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import authenticate from '../middlewares/auth';
 import { authorize, authorizeMinRole } from '../middlewares/rbac';
 import { UserRole } from '../types/enums';
+import { uploadDocuments } from '../middlewares/upload';
 import {
   createAssignmentController,
   listAssignments,
@@ -16,6 +17,8 @@ import {
   checkAssignmentDeadline,
   publishAssignment,
   closeAssignment,
+  uploadAssignmentMaterials,
+  deleteAssignmentMaterial,
 } from '../controllers/assignmentController';
 import {
   createAssignmentValidation,
@@ -26,6 +29,7 @@ import {
   submissionIdParamValidation,
   assignmentQueryValidation,
   handleAssignmentValidationErrors,
+  deleteAssignmentMaterialValidation,
 } from '../validators/assignmentValidator';
 
 const router = Router();
@@ -73,11 +77,52 @@ router.patch('/:id/publish', authenticate, authorize(UserRole.TEACHER), assignme
 router.patch('/:id/close', authenticate, authorize(UserRole.TEACHER), assignmentIdParamValidation, handleAssignmentValidationErrors, closeAssignment);
 
 /**
+ * @route   POST /api/v1/assignments/:id/materials
+ * @desc    Upload additional materials to an existing assignment
+ * @access  Private (Teacher)
+ * @body    multipart/form-data with 'materials' field (documents, max 10 files, 10MB each)
+ */
+router.post(
+  '/:id/materials',
+  authenticate,
+  authorize(UserRole.TEACHER),
+  uploadDocuments('materials', 10),
+  assignmentIdParamValidation,
+  handleAssignmentValidationErrors,
+  uploadAssignmentMaterials
+);
+
+/**
+ * @route   DELETE /api/v1/assignments/:id/materials
+ * @desc    Delete a material file from an assignment
+ * @access  Private (Teacher)
+ * @body    { fileUrl }
+ */
+router.delete(
+  '/:id/materials',
+  authenticate,
+  authorize(UserRole.TEACHER),
+  assignmentIdParamValidation,
+  deleteAssignmentMaterialValidation,
+  handleAssignmentValidationErrors,
+  deleteAssignmentMaterial
+);
+
+/**
  * @route   POST /api/v1/assignments/:id/submit
  * @desc    Submit an assignment
  * @access  Private (Student)
  */
-router.post('/:id/submit', authenticate, authorize(UserRole.STUDENT), assignmentIdParamValidation, submitAssignmentValidation, handleAssignmentValidationErrors, submitAssignmentController);
+router.post(
+  '/:id/submit',
+  authenticate,
+  authorize(UserRole.STUDENT),
+  uploadDocuments('attachments', 5),
+  assignmentIdParamValidation,
+  submitAssignmentValidation,
+  handleAssignmentValidationErrors,
+  submitAssignmentController
+);
 
 /**
  * @route   POST /api/v1/assignments/:id/submissions/:submissionId/grade
@@ -100,7 +145,15 @@ router.post(
  * @desc    Create a new assignment
  * @access  Private (Teacher)
  */
-router.post('/', authenticate, authorize(UserRole.TEACHER), createAssignmentValidation, handleAssignmentValidationErrors, createAssignmentController);
+router.post(
+  '/',
+  authenticate,
+  authorize(UserRole.TEACHER),
+  uploadDocuments('materials', 5),
+  createAssignmentValidation,
+  handleAssignmentValidationErrors,
+  createAssignmentController
+);
 
 /**
  * @route   GET /api/v1/assignments

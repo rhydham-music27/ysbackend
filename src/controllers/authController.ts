@@ -2,7 +2,8 @@ import { NextFunction, Request, Response } from 'express';
 import passport from 'passport';
 import User, { IUser } from '../models/User';
 import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
-import { OAuthProvider, UserRole } from '../types/enums';
+import { OAuthProvider, UserRole, FileCategory } from '../types/enums';
+import { uploadToCloudinary, deleteFromCloudinary, extractPublicIdFromUrl } from '../utils/fileUpload';
 
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
@@ -183,6 +184,122 @@ export function googleOAuthFailure(_req: Request, res: Response) {
     return res.redirect(302, `${frontendUrl}/login?error=oauth_failed`);
   }
   return res.status(401).json({ success: false, message: 'Google authentication failed or was cancelled' });
+}
+
+export async function uploadProfileAvatar(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = req.user as IUser | undefined;
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+
+    // If user already has avatar, delete old avatar from Cloudinary
+    if (user.profile.avatar) {
+      const publicId = extractPublicIdFromUrl(user.profile.avatar);
+      if (publicId) {
+        await deleteFromCloudinary({ publicId, resourceType: 'image' });
+      }
+    }
+
+    // Upload new avatar
+    const uploadResult = await uploadToCloudinary({
+      file: req.file!,
+      category: FileCategory.PROFILE_AVATAR,
+    });
+
+    if (!uploadResult.success || !uploadResult.url) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to upload avatar',
+        error: uploadResult.error,
+      });
+    }
+
+    // Update user profile
+    user.profile.avatar = uploadResult.url;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile avatar uploaded successfully',
+      data: { avatar: uploadResult.url, user: user.toJSON() },
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function deleteProfileAvatar(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = req.user as IUser | undefined;
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    if (!user.profile.avatar) {
+      return res.status(400).json({ success: false, message: 'No avatar to delete' });
+    }
+
+    // Extract public ID and delete from Cloudinary
+    const publicId = extractPublicIdFromUrl(user.profile.avatar);
+    if (publicId) {
+      await deleteFromCloudinary({ publicId, resourceType: 'image' });
+    }
+
+    // Update user profile
+    user.profile.avatar = undefined;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile avatar deleted successfully',
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function updateProfile(req: Request, res: Response, next: NextFunction) {
+  try {
+    const user = req.user as IUser | undefined;
+    if (!user) {
+      return res.status(401).json({ success: false, message: 'Not authenticated' });
+    }
+
+    const { firstName, lastName, phone, dateOfBirth, address } = req.body;
+
+    // Update user profile fields
+    if (firstName !== undefined) {
+      user.profile.firstName = firstName;
+    }
+    if (lastName !== undefined) {
+      user.profile.lastName = lastName;
+    }
+    if (phone !== undefined) {
+      user.profile.phone = phone;
+    }
+    if (dateOfBirth !== undefined) {
+      user.profile.dateOfBirth = new Date(dateOfBirth);
+    }
+    if (address !== undefined) {
+      user.profile.address = { ...user.profile.address, ...address };
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully',
+      data: { user: user.toJSON() },
+    });
+  } catch (error) {
+    return next(error);
+  }
 }
 
 

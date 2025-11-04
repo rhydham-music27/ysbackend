@@ -1,14 +1,28 @@
 import { Router } from 'express';
 import passport from '../config/passport';
-import { getCurrentUser, login, logout, refreshToken, register, googleOAuthCallback, googleOAuthFailure, googleOAuthInitiate } from '../controllers/authController';
+import {
+  getCurrentUser,
+  login,
+  logout,
+  refreshToken,
+  register,
+  googleOAuthCallback,
+  googleOAuthFailure,
+  googleOAuthInitiate,
+  uploadProfileAvatar,
+  deleteProfileAvatar,
+  updateProfile,
+} from '../controllers/authController';
 import authenticate from '../middlewares/auth';
 import authorize, { authorizeMinRole } from '../middlewares/rbac';
 import { UserRole } from '../types/enums';
+import { uploadSingleImage } from '../middlewares/upload';
 import {
   handleValidationErrors,
   loginValidation,
   refreshTokenValidation,
   registerValidation,
+  updateProfileValidation,
 } from '../validators/authValidator';
 
 const router = Router();
@@ -83,6 +97,29 @@ router.post('/logout', authenticate, logout);
  * @returns { success, data: { user } }
  */
 router.get('/me', authenticate, getCurrentUser);
+
+/**
+ * @route   PUT /api/v1/auth/profile
+ * @desc    Update user profile (text fields only)
+ * @access  Private (All authenticated users)
+ * @body    { firstName?, lastName?, phone?, dateOfBirth?, address? }
+ */
+router.put('/profile', authenticate, updateProfileValidation, handleValidationErrors, updateProfile);
+
+/**
+ * @route   POST /api/v1/auth/profile/avatar
+ * @desc    Upload or update profile avatar
+ * @access  Private (All authenticated users)
+ * @body    multipart/form-data with 'avatar' field (image file, max 5MB)
+ */
+router.post('/profile/avatar', authenticate, uploadSingleImage('avatar'), uploadProfileAvatar);
+
+/**
+ * @route   DELETE /api/v1/auth/profile/avatar
+ * @desc    Delete profile avatar
+ * @access  Private (All authenticated users)
+ */
+router.delete('/profile/avatar', authenticate, deleteProfileAvatar);
 
 /**
  * @route   GET /api/v1/auth/admin/test

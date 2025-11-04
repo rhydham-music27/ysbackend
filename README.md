@@ -8,7 +8,8 @@ Your Shikshak is an EdTech platform designed to support five user roles: Admin, 
 - Express.js framework
 - MongoDB with Mongoose
 - JWT & OAuth authentication (Passport.js with Google OAuth 2.0)
-- Cloudinary for file storage
+- Cloudinary SDK (v1.41.0) - Cloud storage and CDN
+- Multer (v1.4.5) - Multipart/form-data handling
 
 ### Project Structure (MVC)
 ```
@@ -135,11 +136,17 @@ router.post('/attendance', authenticate, authorize(UserRole.TEACHER, UserRole.CO
 
 ## API Endpoints
 
+### Authentication
 - POST `/api/v1/auth/register` — Register new user
 - POST `/api/v1/auth/login` — User login
 - POST `/api/v1/auth/logout` — User logout (protected)
 - POST `/api/v1/auth/refresh` — Refresh access token
 - GET `/api/v1/auth/me` — Get current user (protected)
+
+### Profile Management
+- PUT `/api/v1/auth/profile` — Update profile text fields (All authenticated)
+- POST `/api/v1/auth/profile/avatar` — Upload profile avatar (All authenticated)
+- DELETE `/api/v1/auth/profile/avatar` — Delete profile avatar (All authenticated)
 
 #### OAuth Endpoints
 - GET `/api/v1/auth/google` — Initiate Google OAuth flow
@@ -214,19 +221,21 @@ The assignment system enables teachers to create, publish, and grade assignments
 
 ### Assignment API Endpoints
 
-- POST `/api/v1/assignments` — Create assignment (Teacher)
+- POST `/api/v1/assignments` — Create assignment (Teacher) - Now supports file uploads for materials
 - GET `/api/v1/assignments` — List assignments (All authenticated)
 - GET `/api/v1/assignments/my` — Get student's assignments (Student)
 - GET `/api/v1/assignments/:id` — Get assignment details (All authenticated)
 - PUT `/api/v1/assignments/:id` — Update assignment (Teacher)
 - DELETE `/api/v1/assignments/:id` — Delete assignment (Teacher)
-- POST `/api/v1/assignments/:id/submit` — Submit assignment (Student)
+- POST `/api/v1/assignments/:id/submit` — Submit assignment (Student) - Now supports file uploads for submissions
 - POST `/api/v1/assignments/:id/submissions/:submissionId/grade` — Grade submission (Teacher)
 - GET `/api/v1/assignments/:id/my-submission` — Get own submission (Student)
 - GET `/api/v1/assignments/:id/stats` — Get assignment statistics (Teacher+)
 - GET `/api/v1/assignments/:id/deadline` — Check deadline status (All authenticated)
 - PATCH `/api/v1/assignments/:id/publish` — Publish assignment (Teacher)
 - PATCH `/api/v1/assignments/:id/close` — Close assignment (Teacher)
+- POST `/api/v1/assignments/:id/materials` — Upload additional materials (Teacher)
+- DELETE `/api/v1/assignments/:id/materials` — Delete material file (Teacher)
 
 #### Quick cURL Examples
 
@@ -276,6 +285,15 @@ curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
 
 ### Completed Features (updated)
 
+- File upload and storage with Cloudinary
+- Profile avatar upload and management
+- Assignment material uploads (teacher)
+- Assignment submission file uploads (student)
+- Automatic file type validation (images, documents)
+- File size limits (images: 5MB, documents: 10MB)
+- Secure file deletion from cloud storage
+- CDN delivery for uploaded files
+- Organized folder structure in Cloudinary
 - Comprehensive grading system with grade book
 - Multiple grade types (assignments, exams, quizzes, manual, participation)
 - GPA calculation (4.0 scale)
@@ -338,6 +356,11 @@ Google OAuth (add these):
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_CALLBACK_URL` (e.g. `http://localhost:5000/api/v1/auth/google/callback`)
 - `FRONTEND_URL` (optional redirect target for OAuth web flows)
+
+Cloudinary (Phase 11 - add these):
+- `CLOUDINARY_CLOUD_NAME` - Your Cloudinary cloud name
+- `CLOUDINARY_API_KEY` - API key from Cloudinary dashboard
+- `CLOUDINARY_API_SECRET` - API secret from Cloudinary dashboard
 
 Note: Use strong, unique secrets for JWT; you can generate with `openssl rand -base64 32`.
 
@@ -473,8 +496,100 @@ The scheduling system provides recurring weekly schedule management (master time
 - Schedule-to-Class instance generation
 - Soft delete for schedule deactivation
 
+## File Upload and Storage
+
+The file upload system provides cloud storage integration with Cloudinary for handling profile avatars and assignment materials. The system uses Multer for handling multipart/form-data and Cloudinary SDK for cloud storage and CDN delivery.
+
+### Features
+
+- Cloudinary integration for cloud storage and CDN delivery
+- Multer middleware for handling multipart/form-data
+- Support for images (profile avatars) and documents (assignments)
+- Automatic file type and size validation
+- Organized folder structure in Cloudinary (profiles, assignments, courses)
+- Secure file deletion when removing avatars or attachments
+- Memory-based storage (no local disk usage)
+
+### File Upload Workflow
+
+#### User uploads profile avatar:
+1. User selects image file (JPG, PNG, GIF, WebP)
+2. Frontend sends multipart/form-data to POST /api/v1/auth/profile/avatar
+3. Multer validates file type and size (max 5MB)
+4. File uploaded to Cloudinary in 'yourshikshak/profiles' folder
+5. Cloudinary URL stored in User.profile.avatar
+6. Old avatar automatically deleted if exists
+
+#### Teacher uploads assignment materials:
+1. Teacher creates assignment with materials
+2. Uploads up to 5 documents (PDF, DOC, DOCX, TXT)
+3. Files uploaded to Cloudinary in 'yourshikshak/assignments/materials' folder
+4. URLs stored in Assignment.attachments array
+5. Can upload additional materials later using POST /:id/materials
+
+#### Student submits assignment with files:
+1. Student submits assignment with up to 5 attachments
+2. Files uploaded to Cloudinary in 'yourshikshak/assignments/submissions' folder
+3. URLs stored in Submission.attachments array
+4. Supports resubmission with new files
+
+## Cloudinary Setup
+
+1. Sign up for free Cloudinary account at https://cloudinary.com/users/register/free
+2. Go to Dashboard: https://cloudinary.com/console
+3. Copy Cloud Name, API Key, and API Secret from dashboard
+4. Add credentials to .env file:
+   - CLOUDINARY_CLOUD_NAME=your-cloud-name
+   - CLOUDINARY_API_KEY=your-api-key
+   - CLOUDINARY_API_SECRET=your-api-secret
+5. (Optional) Configure upload presets in Cloudinary dashboard
+6. (Optional) Set up folder structure for organization
+7. Test file upload using Postman or frontend
+
+### File Upload Limits
+
+#### Profile Avatars:
+- File types: JPEG, JPG, PNG, GIF, WebP
+- Max size: 5MB per file
+- Max files: 1 (single upload)
+
+#### Assignment Materials (Teacher):
+- File types: PDF, DOC, DOCX, TXT
+- Max size: 10MB per file
+- Max files: 5 per request (can upload more in separate requests)
+
+#### Assignment Submissions (Student):
+- File types: PDF, DOC, DOCX, TXT
+- Max size: 10MB per file
+- Max files: 5 per submission
+
+#### Cloudinary Free Tier:
+- Storage: 25 GB
+- Bandwidth: 25 GB/month
+- Transformations: 25,000/month
+
+### Cloudinary Features
+
+- Automatic image optimization (quality, format)
+- CDN delivery for fast global access
+- Image transformations (resize, crop, filters)
+- Secure URLs with signed uploads (future enhancement)
+- Automatic backup and redundancy
+- Media library management dashboard
+- Analytics and usage tracking
+
+### Security Best Practices
+
+- File type validation (MIME type and extension)
+- File size limits to prevent DoS attacks
+- Memory storage (no local disk pollution)
+- Cloudinary URL validation before deletion
+- Only authenticated users can upload files
+- RBAC enforced on all upload endpoints
+- Automatic cleanup when deleting resources
+
 ### Progress Tracker
 
-- Phase 10 complete: Scheduling and Timetable Management
-- 10/18 phases completed
-- Next phase: Phase 11 — File Upload Integration with Cloudinary
+- Phase 11 complete: File Upload Integration with Cloudinary
+- 11/18 phases completed
+- Next phase: Phase 12 — Notification System (Email and In-App)

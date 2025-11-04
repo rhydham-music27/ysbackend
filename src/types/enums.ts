@@ -116,3 +116,19 @@ export enum LetterGrade {
   F = 'F',
 }
 
+// File upload enums (Phase 11)
+export enum FileType {
+  IMAGE = 'image',
+  DOCUMENT = 'document',
+  VIDEO = 'video',
+  AUDIO = 'audio',
+}
+
+export enum FileCategory {
+  PROFILE_AVATAR = 'profile_avatar',
+  ASSIGNMENT_ATTACHMENT = 'assignment_attachment',
+  ASSIGNMENT_MATERIAL = 'assignment_material',
+  COURSE_MATERIAL = 'course_material',
+  DOCUMENT = 'document',
+}
+

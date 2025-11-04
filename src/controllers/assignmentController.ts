@@ -10,7 +10,8 @@ import {
   getStudentAssignments,
   checkDeadline,
 } from '../services/assignmentService';
-import { AssignmentStatus } from '../types/enums';
+import { AssignmentStatus, FileCategory } from '../types/enums';
+import { uploadMultipleToCloudinary, deleteFromCloudinary, extractPublicIdFromUrl } from '../utils/fileUpload';
 
 export async function createAssignmentController(req: Request, res: Response, next: NextFunction) {
   try {
@@ -27,6 +28,17 @@ export async function createAssignmentController(req: Request, res: Response, ne
       lateSubmissionPenalty,
     } = req.body;
 
+    // Handle file uploads if present
+    let finalAttachments = attachments || [];
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      const uploadResults = await uploadMultipleToCloudinary(
+        req.files as Express.Multer.File[],
+        FileCategory.ASSIGNMENT_MATERIAL
+      );
+      const uploadedUrls = uploadResults.filter((r) => r.success && r.url).map((r) => r.url!);
+      finalAttachments = [...(attachments || []), ...uploadedUrls];
+    }
+
     const assignment = await createAssignment({
       title,
       description,
@@ -35,7 +47,7 @@ export async function createAssignmentController(req: Request, res: Response, ne
       dueDate: new Date(dueDate),
       publishDate: publishDate ? new Date(publishDate) : undefined,
       maxGrade,
-      attachments,
+      attachments: finalAttachments,
       instructions,
       allowLateSubmission,
       lateSubmissionPenalty,
@@ -111,7 +123,24 @@ export async function submitAssignmentController(req: Request, res: Response, ne
   try {
     const { id } = req.params;
     const { content, attachments } = req.body;
-    const assignment = await submitAssignment({ assignmentId: id, studentId: (req as any).user._id.toString(), content, attachments });
+
+    // Handle file uploads if present
+    let finalAttachments = attachments || [];
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      const uploadResults = await uploadMultipleToCloudinary(
+        req.files as Express.Multer.File[],
+        FileCategory.ASSIGNMENT_ATTACHMENT
+      );
+      const uploadedUrls = uploadResults.filter((r) => r.success && r.url).map((r) => r.url!);
+      finalAttachments = [...(attachments || []), ...uploadedUrls];
+    }
+
+    const assignment = await submitAssignment({
+      assignmentId: id,
+      studentId: (req as any).user._id.toString(),
+      content,
+      attachments: finalAttachments,
+    });
     res.status(201).json({ success: true, message: 'Assignment submitted successfully', data: { assignment } });
   } catch (error) {
     next(error);
@@ -189,6 +218,102 @@ export async function closeAssignment(req: Request, res: Response, next: NextFun
     res.status(200).json({ success: true, message: 'Assignment closed successfully', data: { assignment } });
   } catch (error) {
     next(error);
+  }
+}
+
+export async function uploadAssignmentMaterials(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+    const files = req.files as Express.Multer.File[] | undefined;
+
+    if (!files || files.length === 0) {
+      return res.status(400).json({ success: false, message: 'No files uploaded' });
+    }
+
+    const assignment = await Assignment.findById(id);
+    if (!assignment) {
+      return res.status(404).json({ success: false, message: 'Assignment not found' });
+    }
+
+    // Validate user is the assignment teacher
+    if (assignment.teacher.toString() !== (req as any).user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the assignment teacher can upload materials',
+      });
+    }
+
+    // Upload files to Cloudinary
+    const uploadResults = await uploadMultipleToCloudinary(files, FileCategory.ASSIGNMENT_MATERIAL);
+    const uploadedUrls = uploadResults.filter((r) => r.success && r.url).map((r) => r.url!);
+
+    if (uploadedUrls.length === 0) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to upload files',
+      });
+    }
+
+    // Add URLs to assignment attachments
+    assignment.attachments.push(...uploadedUrls);
+    await assignment.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Materials uploaded successfully',
+      data: { attachments: uploadedUrls, assignment },
+    });
+  } catch (error) {
+    return next(error);
+  }
+}
+
+export async function deleteAssignmentMaterial(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+    const { fileUrl } = req.body;
+
+    if (!fileUrl) {
+      return res.status(400).json({ success: false, message: 'File URL is required' });
+    }
+
+    const assignment = await Assignment.findById(id);
+    if (!assignment) {
+      return res.status(404).json({ success: false, message: 'Assignment not found' });
+    }
+
+    // Validate user is the assignment teacher
+    if (assignment.teacher.toString() !== (req as any).user._id.toString()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only the assignment teacher can delete materials',
+      });
+    }
+
+    // Check if fileUrl exists in assignment attachments
+    if (!assignment.attachments.includes(fileUrl)) {
+      return res.status(404).json({
+        success: false,
+        message: 'File not found in assignment attachments',
+      });
+    }
+
+    // Extract public ID and delete from Cloudinary
+    const publicId = extractPublicIdFromUrl(fileUrl);
+    if (publicId) {
+      await deleteFromCloudinary({ publicId, resourceType: 'raw' });
+    }
+
+    // Remove URL from attachments array
+    assignment.attachments = assignment.attachments.filter((url) => url !== fileUrl);
+    await assignment.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Material deleted successfully',
+    });
+  } catch (error) {
+    return next(error);
   }
 }
 
