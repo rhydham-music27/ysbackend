@@ -58,8 +58,14 @@ export enum DayOfWeek {
   SUNDAY = 'sunday',
 }
 
+export enum AttendanceStatus {
+  PRESENT = 'present',
+  ABSENT = 'absent',
+  LATE = 'late',
+  EXCUSED = 'excused',
+}
+
 // Future enums (placeholders for subsequent phases):
-// export enum AttendanceStatus { PRESENT = 'present', ABSENT = 'absent', LATE = 'late' }
 // export enum AssignmentStatus { PENDING = 'pending', SUBMITTED = 'submitted', GRADED = 'graded' }
 // export enum NotificationType { EMAIL = 'email', IN_APP = 'in-app', SMS = 'sms' }
 

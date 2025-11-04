@@ -180,6 +180,38 @@ Notes:
 - POST `/api/v1/classes-sessions/:id/students` — Add student to session (Admin/Manager/Teacher/Coordinator)
 - DELETE `/api/v1/classes-sessions/:id/students` — Remove student from session (Admin/Manager/Teacher/Coordinator)
 
+### Attendance Tracking
+
+- POST `/api/v1/attendance` — Mark individual attendance (Teacher, Coordinator)
+- POST `/api/v1/attendance/bulk` — Bulk mark attendance (Teacher, Coordinator)
+- PUT `/api/v1/attendance/:id` — Update attendance (Teacher, Coordinator)
+- GET `/api/v1/attendance/class/:id` — Get class attendance (Teacher+)
+- GET `/api/v1/attendance/student/:id` — Get student attendance (Teacher+)
+- GET `/api/v1/attendance/student/:id/stats` — Get student stats (Teacher+)
+- GET `/api/v1/attendance/my` — Get own attendance (Student)
+- GET `/api/v1/attendance/my/stats` — Get own stats (Student)
+- DELETE `/api/v1/attendance/:id` — Delete attendance (Manager, Admin)
+
+## Attendance Tracking
+
+The attendance system enables teachers and coordinators to mark student attendance per class session, with RBAC enforcement and student self-service views.
+
+- Attendance records link to `Class` and `User` (student)
+- Teachers/Coordinators can mark individual or bulk attendance
+- Students can view their own attendance history and statistics
+- Admin/Manager can view any student's or class's attendance
+- Supported statuses: Present, Absent, Late, Excused
+
+### Attendance Workflow
+
+1. Teacher marks attendance:
+   - Navigate to a class and mark Present/Absent/Late for students
+   - Optionally bulk mark the entire class; add notes where needed
+2. Student views attendance:
+   - View own attendance history by date range and see statistics
+3. Admin/Manager monitors attendance:
+   - View any class or student's attendance, generate reports, and correct records
+
 ## Environment Variables
 
 Add these variables to your `.env` file (see `.env.example`):

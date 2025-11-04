@@ -8,6 +8,7 @@ import finalClassRoutes from './routes/finalClassRoutes';
 import leadRoutes from './routes/leadRoutes';
 import courseRoutes from './routes/courseRoutes';
 import classRoutes from './routes/classRoutes';
+import attendanceRoutes from './routes/attendanceRoutes';
 import passport from 'passport';
 import { initializePassport } from './config/passport';
 
@@ -60,7 +61,8 @@ app.use(`/api/${apiVersion}/classes`, finalClassRoutes);
 app.use(`/api/${apiVersion}/leads`, leadRoutes);
 app.use(`/api/${apiVersion}/courses`, courseRoutes);
 app.use(`/api/${apiVersion}/classes-sessions`, classRoutes);
-// Future routes: attendance, assignments, grades, schedules, etc.
+app.use(`/api/${apiVersion}/attendance`, attendanceRoutes);
+// Future routes: assignments, grades, schedules, notifications, reports, etc.
 
 // 404 handler
 app.use((req: Request, res: Response) => {

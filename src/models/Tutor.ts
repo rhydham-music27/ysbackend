@@ -1,4 +1,5 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
+import { getCityCodeFromName } from '../utils/cityCodes';
 
 // Personal Details
 export interface IPersonalDetails {
@@ -35,6 +36,8 @@ export interface ILocationPreferences {
   fullAddress?: string;
   pinCode?: string;
   teachingMode?: TeachingMode;
+  cityCode?: string; // e.g., BPL for Bhopal
+  city?: string; // e.g., Bhopal
   preferredLocations?: string[];
   availableTimeSlots?: string[];
 }
@@ -165,6 +168,8 @@ const LocationPreferencesSchema = new Schema<ILocationPreferences>(
     fullAddress: String,
     pinCode: String,
     teachingMode: { type: String, enum: ['Online', 'Offline', 'Both'], default: 'Both' },
+    cityCode: { type: String },
+    city: { type: String },
     preferredLocations: [String],
     availableTimeSlots: [String],
   },
@@ -260,6 +265,53 @@ const TutorSchema = new Schema<ITutor, ITutorModel>(
   },
   { timestamps: true }
 );
+
+function deriveGenderCode(gender?: string): string {
+  const g = String(gender || '').toLowerCase();
+  if (g.startsWith('m')) return 'M';
+  if (g.startsWith('f')) return 'F';
+  return 'X';
+}
+
+function normalizeCityCode(code?: string, cityName?: string): string {
+  // Prefer explicit code, else try mapping from city name, else fallback
+  const direct = code?.trim();
+  const mapped = getCityCodeFromName(cityName || undefined) || undefined;
+  const chosen = (direct && direct.toUpperCase()) || mapped || '';
+  const cleaned = chosen.toUpperCase().replace(/[^A-Z]/g, '');
+  return cleaned.slice(0, 5) || 'XXX';
+}
+
+async function generateUniqueTutorId(doc: ITutor): Promise<string> {
+  const genderCode = deriveGenderCode(doc.personalDetails?.gender);
+  const cityCode = normalizeCityCode(doc.locationPreferences?.cityCode, doc.locationPreferences?.city);
+  // 4-digit random from 1000-9999
+  // Loop until unique
+  // In practice, collisions are rare; cap attempts to avoid infinite loop
+  for (let attempts = 0; attempts < 20; attempts += 1) {
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    const candidate = `T${genderCode}${cityCode}${rand}`;
+    const exists = await Tutor.exists({ 'personalDetails.tutorId': candidate });
+    if (!exists) return candidate;
+  }
+  // Fallback: include timestamp shard to reduce collisions further
+  const fallback = `T${genderCode}${cityCode}${Date.now().toString().slice(-4)}`;
+  return fallback;
+}
+
+// Generate tutorId automatically if missing, before validation
+TutorSchema.pre('validate', async function (next) {
+  try {
+    const doc = this as ITutor;
+    if (!doc.personalDetails) (doc as any).personalDetails = {};
+    if (!doc.personalDetails.tutorId) {
+      doc.personalDetails.tutorId = await generateUniqueTutorId(doc);
+    }
+    next();
+  } catch (e) {
+    next(e as any);
+  }
+});
 
 export const Tutor = mongoose.model<ITutor, ITutorModel>('Tutor', TutorSchema);
 export const Attendance = mongoose.model<IAttendance>('Attendance', AttendanceSchema);

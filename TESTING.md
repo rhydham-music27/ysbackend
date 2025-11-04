@@ -315,6 +315,90 @@ Expected: `200 OK`, list of upcoming sessions.
 
 ---
 
+## Attendance API
+
+All endpoints require `Authorization: Bearer {{accessToken}}`.
+
+Preconditions:
+- At least one class session exists and a student is associated with the class per your Class model rules.
+- The caller has appropriate role per RBAC for each endpoint.
+
+### 1) Mark Individual Attendance (Teacher/Coordinator)
+POST `{{baseUrl}}/api/{{apiVersion}}/attendance`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{
+  "classId": "<CLASS_ID>",
+  "studentId": "<STUDENT_USER_ID>",
+  "date": "2025-07-10",
+  "status": "present",
+  "notes": "On time"
+}
+```
+Expected: `201 Created`, returns `{ attendance }`.
+
+### 2) Bulk Mark Attendance (Teacher/Coordinator)
+POST `{{baseUrl}}/api/{{apiVersion}}/attendance/bulk`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{
+  "classId": "<CLASS_ID>",
+  "date": "2025-07-10",
+  "attendanceRecords": [
+    { "studentId": "<STUDENT_ID_1>", "status": "present" },
+    { "studentId": "<STUDENT_ID_2>", "status": "absent", "notes": "Sick" }
+  ]
+}
+```
+Expected: `201 Created`, returns `{ marked, failed, summary }`.
+
+### 3) Update Attendance (Teacher/Coordinator)
+PUT `{{baseUrl}}/api/{{apiVersion}}/attendance/:id`
+Headers: `Authorization: Bearer {{accessToken}}`
+Body (JSON):
+```json
+{ "status": "late", "notes": "Joined 10 mins late" }
+```
+Expected: `200 OK`, returns updated `{ attendance }`.
+
+### 4) Get Attendance by Class (Teacher/Coordinator/Manager/Admin)
+GET `{{baseUrl}}/api/{{apiVersion}}/attendance/class/:id?date=2025-07-10`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, returns `{ attendance, count }`.
+
+### 5) Get Attendance by Student (Teacher/Coordinator/Manager/Admin)
+GET `{{baseUrl}}/api/{{apiVersion}}/attendance/student/:id?startDate=2025-07-01&endDate=2025-07-31`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, returns `{ attendance, count }`.
+
+### 6) Get Student Attendance Statistics (Teacher/Coordinator/Manager/Admin)
+GET `{{baseUrl}}/api/{{apiVersion}}/attendance/student/:id/stats`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, returns `{ stats: { total, present, absent, late, attendanceRate } }`.
+
+### 7) Get My Attendance (Student)
+GET `{{baseUrl}}/api/{{apiVersion}}/attendance/my?startDate=2025-07-01&endDate=2025-07-31`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, returns `{ attendance, count }`.
+
+### 8) Get My Attendance Stats (Student)
+GET `{{baseUrl}}/api/{{apiVersion}}/attendance/my/stats`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, returns `{ stats }`.
+
+### 9) Delete Attendance (Manager/Admin)
+DELETE `{{baseUrl}}/api/{{apiVersion}}/attendance/:id`
+Headers: `Authorization: Bearer {{accessToken}}`
+Expected: `200 OK`, confirmation message.
+
+Notes:
+- Valid `status` values: `present`, `absent`, `late`, `excused`.
+- The API prevents duplicates per (class, student, date). Expect a 4xx error if re-marking the same record for the same day.
+
+---
+
 ## Common Issues & Tips
 - 401 on protected routes: ensure `Authorization` header is present and `accessToken` is not expired.
 - 401 on refresh: ensure `refreshToken` matches the one stored for the user; if not, log in again.
@@ -329,9 +413,12 @@ Expected: `200 OK`, list of upcoming sessions.
 3. Refresh token → store new tokens
 4. Create a course (as Manager/Admin) → capture courseId
 5. Enroll a student into the course (Teacher/Manager/Admin)
-6. Create a class session for the course → capture classId
-7. Add/remove a student from the class session
-8. (Optional) Leads: create and convert to final class
-9. Logout → ensure `refreshToken` no longer works
+6. Create a class session for the course → capture classId and ensure student belongs to the class
+7. Mark attendance for the student: POST `/attendance` → capture attendanceId
+8. Get class attendance: GET `/attendance/class/:classId`
+9. Get student attendance: GET `/attendance/student/:studentId`
+10. (Optional) Update or delete the attendance (role permitting)
+11. (Optional) Leads: create and convert to final class
+12. Logout → ensure `refreshToken` no longer works
 
 
