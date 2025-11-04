@@ -202,6 +202,14 @@ Notes:
 - POST `/api/v1/coordinator/classes/:id/announcement` — Send class announcement (Coordinator)
 - PATCH `/api/v1/coordinator/classes/:id/assign` — Assign coordinator to class (Manager, Admin)
 
+### Student Portal
+
+- GET `/api/v1/student/dashboard` — Comprehensive dashboard (Student)
+- GET `/api/v1/student/courses/available` — Available courses (Student)
+- POST `/api/v1/student/courses/:id/enroll` — Enroll in course (Student)
+- POST `/api/v1/student/courses/:id/drop` — Drop course (Student)
+- GET `/api/v1/student/courses/:id/progress` — Course progress details (Student)
+
 ## Assignment and Homework Management
 
 The assignment system enables teachers to create, publish, and grade assignments linked to courses, while students can view and submit their work.
@@ -297,6 +305,14 @@ curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
 
 ### Completed Features (updated)
 
+- Student portal APIs
+- Comprehensive student dashboard (single API call)
+- Self-service course enrollment and drop
+- Available courses discovery
+- Course-specific progress tracking
+- Integration with all student-facing features
+- Strict ownership validation (students access only own data)
+- Student-only RBAC enforcement
 - File upload and storage with Cloudinary
 - Profile avatar upload and management
 - Assignment material uploads (teacher)
@@ -1334,5 +1350,182 @@ The coordinator dashboard system provides class-level management and coordinatio
 ### Progress Tracker
 
 - Phase 16 complete: Class Coordinator-Specific APIs
-- 16/18 phases completed
-- Next phase: Phase 17 — Student Portal APIs
+- Phase 17 complete: Student Portal APIs
+- 17/18 phases completed
+- Next phase: Phase 18 — API Documentation with Swagger/OpenAPI
+- Enhancement phases: Phase 19 — Error Handling, Logging, and Validation Enhancements
+
+## Student Portal APIs (Phase 17)
+
+The student portal system provides a comprehensive unified dashboard for students with aggregated data from all modules in a single API call, plus self-service course enrollment and drop capabilities. The system consolidates existing student-facing endpoints scattered across different routes into a unified portal with strict student-only RBAC enforcement and ownership validation ensuring students can only access their own data.
+
+### Features
+
+- **Comprehensive student dashboard** with aggregated data in a single API call
+- **Self-service course enrollment and drop** with automatic validation
+- **Available courses discovery** showing active, not full, not already enrolled courses
+- **Course-specific progress tracking** with assignments, grades, and attendance
+- **Integration with all existing student endpoints** across all modules
+- **Strict student-only RBAC enforcement** with `authorize(UserRole.STUDENT)` for exact role matching
+- **Ownership validation** ensuring students can only access their own data (req.user._id matching)
+
+### Student Portal Workflows
+
+#### 1. Student Dashboard
+
+- Student logs in and views comprehensive dashboard via GET `/api/v1/student/dashboard`
+- Dashboard shows in a single API call:
+  - Enrolled courses with teacher names and schedules
+  - Upcoming assignments with due dates and overdue flags
+  - Recent grades with letter grades and course names
+  - Attendance summary (total classes, present, absent, late, attendance rate)
+  - Overall GPA across all courses (4.0 scale)
+  - Upcoming classes (next 10 scheduled classes with dates, times, locations)
+  - Unread notifications count and recent notifications (5 most recent)
+- Optimized for frontend performance (one API call vs multiple)
+
+#### 2. Course Enrollment
+
+- Student browses available courses via GET `/api/v1/student/courses/available`
+- Filters show only: active courses, not full (capacity available), not already enrolled
+- Student clicks enroll on desired course via POST `/api/v1/student/courses/:id/enroll`
+- System validates: course active, capacity available, not duplicate enrollment
+- Student enrolled and course appears in dashboard
+
+#### 3. Course Drop
+
+- Student views enrolled courses in dashboard
+- Clicks drop on course to unenroll via POST `/api/v1/student/courses/:id/drop`
+- System validates: student is enrolled, course allows drops
+- Student unenrolled and course removed from dashboard
+
+#### 4. Course Progress Tracking
+
+- Student views detailed progress for specific course via GET `/api/v1/student/courses/:id/progress`
+- Sees all assignments with submission status
+- Views all grades for the course
+- Checks attendance records and rate
+- Monitors overall progress metrics (assignments completed, average grade, attendance rate)
+
+### Student Dashboard Data
+
+The student dashboard aggregates data from multiple sources:
+
+- **Enrolled Courses:** List of active courses with teacher names, schedules, and enrollment dates
+- **Upcoming Assignments:** Next 10 assignments sorted by due date, with overdue flags and submission status
+- **Recent Grades:** Last 10 grades with scores, letter grades, course names, and graded dates
+- **Attendance Summary:** Total classes, present/absent/late counts, and attendance rate percentage
+- **Overall GPA:** Calculated across all courses using 4.0 scale (via Grade.calculateStudentGPA static method)
+- **Upcoming Classes:** Next 10 scheduled classes with dates, times, locations, and course names
+- **Notifications:** Unread count and 5 most recent unread notifications with categories and priorities
+- **Performance Metrics:** Aggregated from all enrolled courses
+
+### Student Role Capabilities
+
+#### Can Do
+
+- View enrolled courses and available courses
+- Enroll in and drop courses (self-service)
+- Submit assignments with files
+- View own grades and GPA
+- View own attendance records and statistics
+- View own performance reports
+- Manage own notifications (read, delete)
+- Update own profile and avatar
+
+#### Cannot Do
+
+- Create or modify courses (teacher/manager only)
+- Grade assignments (teacher only)
+- Mark attendance (teacher/coordinator only)
+- View other students' data (privacy enforced)
+- Access admin/manager/coordinator dashboards
+- Manage system settings or users
+
+#### Data Access
+
+- Students can only access their own data
+- Ownership validated via req.user._id in all queries
+- Cannot query other students' grades, attendance, or assignments
+- Privacy enforced at service and controller layers
+
+### Student Portal API Endpoints
+
+**Dashboard:**
+- GET `/api/v1/student/dashboard` — Comprehensive dashboard (Student)
+  - Returns: enrolled courses, upcoming assignments, recent grades, attendance summary, GPA, upcoming classes, notifications
+
+**Course Enrollment:**
+- GET `/api/v1/student/courses/available` — Available courses (Student)
+  - Returns: active courses not full and not already enrolled
+- POST `/api/v1/student/courses/:id/enroll` — Enroll in course (Student)
+  - Self-service enrollment with automatic validation
+- POST `/api/v1/student/courses/:id/drop` — Drop course (Student)
+  - Self-service unenrollment
+
+**Course Progress:**
+- GET `/api/v1/student/courses/:id/progress` — Course progress details (Student)
+  - Returns: course info, assignments with submission status, grades, attendance, progress metrics
+
+### Existing Student Endpoints (Other Routes)
+
+Student-facing endpoints exist across multiple routes for specific operations:
+
+**Course Routes:**
+- GET `/api/v1/courses/my` — Enrolled courses (Student)
+
+**Assignment Routes:**
+- GET `/api/v1/assignments/my` — Student assignments (Student)
+- POST `/api/v1/assignments/:id/submit` — Submit assignment (Student)
+- GET `/api/v1/assignments/:id/my-submission` — Get own submission (Student)
+
+**Grade Routes:**
+- GET `/api/v1/grades/my` — Student grades (Student)
+- GET `/api/v1/grades/my/gpa` — Student GPA (Student)
+- GET `/api/v1/grades/my/courses/:id` — Course grades (Student)
+
+**Attendance Routes:**
+- GET `/api/v1/attendance/my` — Student attendance (Student)
+- GET `/api/v1/attendance/my/stats` — Attendance statistics (Student)
+
+**Report Routes:**
+- GET `/api/v1/reports/my/performance` — Performance report (Student)
+
+**Notification Routes:**
+- GET `/api/v1/notifications/my` — Notifications (All authenticated)
+- GET `/api/v1/notifications/my/unread` — Unread notifications (All authenticated)
+- GET `/api/v1/notifications/my/count` — Unread count (All authenticated)
+
+**Auth Routes:**
+- PUT `/api/v1/auth/profile` — Update profile (All authenticated)
+- POST `/api/v1/auth/profile/avatar` — Upload avatar (All authenticated)
+
+**Note:** Student portal routes provide unified dashboard and self-service enrollment. Existing endpoints remain for specific operations and data queries.
+
+### API Organization by Role
+
+The API is organized by role for clear separation of concerns:
+
+- **/api/v1/auth** — Authentication (public + all roles)
+- **/api/v1/admin** — Admin operations (admin only)
+- **/api/v1/manager** — Manager operations (manager + admin)
+- **/api/v1/coordinator** — Coordinator operations (coordinator only)
+- **/api/v1/student** — Student portal (student only)
+- **/api/v1/courses** — Course management (all roles, filtered by permissions)
+- **/api/v1/assignments** — Assignment management (teacher + student)
+- **/api/v1/grades** — Grade management (teacher + student)
+- **/api/v1/attendance** — Attendance tracking (teacher/coordinator + student)
+- **/api/v1/schedules** — Schedule management (all roles)
+- **/api/v1/notifications** — Notifications (all roles)
+- **/api/v1/reports** — Reports and analytics (role-specific)
+
+This organization provides clear separation of concerns by role.
+
+### Security Best Practices
+
+- All student portal routes use `authorize(UserRole.STUDENT)` for exact student role matching
+- No hierarchical access (only students can access these endpoints)
+- Ownership validation in service layer ensures students only access their own data
+- Controllers use req.user._id to filter queries (e.g., courses where students includes req.user._id)
+- Service layer validates student exists and has STUDENT role before operations
+- Enrollment operations reuse existing courseService functions with built-in validation

@@ -17,6 +17,7 @@ import reportRoutes from './routes/reportRoutes';
 import adminRoutes from './routes/adminRoutes';
 import managerRoutes from './routes/managerRoutes';
 import coordinatorRoutes from './routes/coordinatorRoutes';
+import studentRoutes from './routes/studentRoutes';
 import passport from 'passport';
 import { initializePassport } from './config/passport';
 
@@ -78,7 +79,8 @@ app.use(`/api/${apiVersion}/reports`, reportRoutes);
 app.use(`/api/${apiVersion}/admin`, adminRoutes);
 app.use(`/api/${apiVersion}/manager`, managerRoutes);
 app.use(`/api/${apiVersion}/coordinator`, coordinatorRoutes);
-// Future routes: student dashboards, etc.
+app.use(`/api/${apiVersion}/student`, studentRoutes);
+// Future routes: swagger documentation, error handling enhancements, etc.
 
 // 404 handler
 app.use((req: Request, res: Response) => {
