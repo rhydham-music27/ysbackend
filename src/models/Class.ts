@@ -149,8 +149,6 @@ ClassSchema.statics.findUpcoming = function () {
 
 const Class = mongoose.model<IClass, IClassModel>('Class', ClassSchema);
 
-export { IClassLocation };
-export type { IClassModel };
 export default Class;
 
 

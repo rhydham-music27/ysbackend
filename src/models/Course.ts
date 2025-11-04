@@ -112,8 +112,6 @@ CourseSchema.statics.findActiveCourses = function () {
 
 const Course = mongoose.model<ICourse, ICourseModel>('Course', CourseSchema);
 
-export { ICourseSchedule };
-export type { ICourseModel };
 export default Course;
 
 
