@@ -8,6 +8,8 @@ import {
   getAttendanceStatistics,
   deleteAttendance,
 } from '../services/attendanceService';
+import { notifyAttendanceMarked } from '../services/notificationService';
+import Class from '../models/Class';
 
 export async function markAttendanceForStudent(req: Request, res: Response, next: NextFunction) {
   try {
@@ -23,6 +25,17 @@ export async function markAttendanceForStudent(req: Request, res: Response, next
       markedBy,
       notes,
     });
+
+    // Trigger notification after successful attendance marking
+    await attendance.populate('class', 'title scheduledDate');
+    const className = (attendance.class as any)?.title || 'Class';
+    notifyAttendanceMarked(
+      attendance.student.toString(),
+      attendance._id.toString(),
+      className,
+      attendance.date,
+      attendance.status
+    ).catch((err) => console.error('Notification error:', err));
 
     res.status(201).json({
       success: true,
@@ -45,6 +58,19 @@ export async function bulkMarkAttendanceForClass(req: Request, res: Response, ne
     }
 
     const result = await bulkMarkAttendance({ classId, attendanceRecords, date: parsedDate, markedBy });
+
+    // Trigger notifications for each successfully marked attendance
+    for (const attendance of result.marked) {
+      await attendance.populate('class', 'title scheduledDate');
+      const className = (attendance.class as any)?.title || 'Class';
+      notifyAttendanceMarked(
+        attendance.student.toString(),
+        attendance._id.toString(),
+        className,
+        attendance.date,
+        attendance.status
+      ).catch((err) => console.error('Notification error:', err));
+    }
 
     res.status(201).json({
       success: true,

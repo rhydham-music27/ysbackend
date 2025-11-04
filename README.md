@@ -10,6 +10,8 @@ Your Shikshak is an EdTech platform designed to support five user roles: Admin, 
 - JWT & OAuth authentication (Passport.js with Google OAuth 2.0)
 - Cloudinary SDK (v1.41.0) - Cloud storage and CDN
 - Multer (v1.4.5) - Multipart/form-data handling
+- Nodemailer (v6.9.0) - Email delivery service
+- Winston (v3.11.0) - Logging
 
 ### Project Structure (MVC)
 ```
@@ -362,6 +364,13 @@ Cloudinary (Phase 11 - add these):
 - `CLOUDINARY_API_KEY` - API key from Cloudinary dashboard
 - `CLOUDINARY_API_SECRET` - API secret from Cloudinary dashboard
 
+Email Service (Phase 12 - add these):
+- `EMAIL_HOST` - SMTP server host (e.g., smtp.gmail.com)
+- `EMAIL_PORT` - SMTP port (587 for TLS, 465 for SSL)
+- `EMAIL_USER` - SMTP username (usually your email address)
+- `EMAIL_PASSWORD` - SMTP password (for Gmail, use App Password)
+- `EMAIL_FROM` - Sender email address
+
 Note: Use strong, unique secrets for JWT; you can generate with `openssl rand -base64 32`.
 
 ## Security Best Practices
@@ -588,8 +597,117 @@ The file upload system provides cloud storage integration with Cloudinary for ha
 - RBAC enforced on all upload endpoints
 - Automatic cleanup when deleting resources
 
+## Notification System (Phase 12)
+
+The notification system provides dual-channel notifications (email and in-app) for keeping users informed about important events in the platform. The system supports multiple notification categories, priorities, and automatic event-driven triggers.
+
+### Features
+
+- **Dual-channel notifications**: Email (via nodemailer) and In-App (database)
+- **Multiple notification categories**: Assignment due, graded, grade posted, attendance marked, course enrollment, class scheduled, cancelled, announcements, and system notifications
+- **Priority-based notifications**: Low, medium, high, and urgent priority levels
+- **Read/unread tracking**: In-app notifications with read status and timestamps
+- **Automatic email delivery**: HTML email templates with notification-specific content
+- **Event-driven triggers**: Automatic notifications from controllers (assignment graded, grade posted, attendance marked)
+- **User notification management**: View, mark as read, delete notifications
+- **Automatic cleanup**: TTL index for expired notification deletion
+
+### Notification Workflow
+
+#### 1. Teacher grades assignment:
+- Teacher grades student submission
+- System automatically triggers notification
+- Email sent to student with grade details
+- In-app notification created in database
+- Student sees unread notification badge
+
+#### 2. Student views notifications:
+- Student logs in and sees unread count
+- Clicks notifications to view list
+- Reads notification and marks as read
+- Can filter by category or priority
+- Can delete individual or all notifications
+
+#### 3. Admin sends announcement:
+- Admin creates manual notification
+- Selects recipient user(s)
+- Chooses notification type (email, in-app, both)
+- Sets priority and category
+- Notification delivered to selected users
+
+### Notification Categories
+
+- **ASSIGNMENT_DUE**: Assignment deadline approaching (24 hours before due date)
+- **ASSIGNMENT_GRADED**: Teacher graded student's submission
+- **GRADE_POSTED**: New grade added to grade book
+- **ATTENDANCE_MARKED**: Attendance marked for student
+- **COURSE_ENROLLMENT**: Student enrolled in new course
+- **CLASS_SCHEDULED**: New class scheduled
+- **CLASS_CANCELLED**: Class cancelled
+- **ANNOUNCEMENT**: General announcement from admin/teacher
+- **SYSTEM**: System notifications
+
+### Notification API Endpoints
+
+- POST `/api/v1/notifications` - Create notification (Manager, Admin)
+- GET `/api/v1/notifications/my` - Get own notifications (All authenticated)
+- GET `/api/v1/notifications/my/unread` - Get unread notifications (All authenticated)
+- GET `/api/v1/notifications/my/count` - Get unread count (All authenticated)
+- PATCH `/api/v1/notifications/:id/read` - Mark as read (All authenticated)
+- PATCH `/api/v1/notifications/:id/unread` - Mark as unread (All authenticated)
+- PATCH `/api/v1/notifications/my/read-all` - Mark all as read (All authenticated)
+- DELETE `/api/v1/notifications/:id` - Delete notification (All authenticated)
+- DELETE `/api/v1/notifications/my/all` - Delete all notifications (All authenticated)
+
+### Notification Triggers
+
+Notifications are automatically triggered in the following scenarios:
+
+- **Assignment Graded**: Triggered in `assignmentController.gradeSubmissionController` after grading submission
+- **Grade Posted**: Triggered in `gradeController.addGradeController` after adding grade (only if published)
+- **Attendance Marked**: Triggered in `attendanceController.markAttendanceForStudent` after marking attendance
+- **Assignment Due**: Should be triggered by scheduled job (cron) that runs daily (future enhancement)
+
+All triggers use fire-and-forget pattern (non-blocking) to ensure main operations succeed even if notifications fail.
+
+### Email Service Setup
+
+#### For Gmail (Development):
+1. Enable 2-Factor Authentication on your Google account
+2. Go to Google Account > Security > 2-Step Verification > App passwords
+3. Generate app password for 'Mail' application
+4. Use the generated 16-character password as EMAIL_PASSWORD (not regular password)
+5. Set EMAIL_HOST=smtp.gmail.com and EMAIL_PORT=587
+
+#### For SendGrid (Production - Recommended):
+1. Sign up at https://sendgrid.com/ (free tier: 100 emails/day)
+2. Create API key in Settings > API Keys
+3. Set EMAIL_HOST=smtp.sendgrid.net, EMAIL_PORT=587
+4. Set EMAIL_USER=apikey, EMAIL_PASSWORD=your-api-key
+
+#### For Mailtrap (Testing):
+1. Sign up at https://mailtrap.io/ (free tier available)
+2. Get SMTP credentials from inbox settings
+3. Use Mailtrap credentials for development testing
+4. Emails are caught and not delivered (safe for testing)
+
+#### Test Email Configuration:
+- Server logs email connection status on startup
+- Send test notification to verify email delivery
+
+### Future Enhancements
+
+- User notification preferences (enable/disable categories, channels)
+- Email template engine (Handlebars, EJS) for better templates
+- SMS notifications via Twilio
+- Push notifications for mobile apps
+- Scheduled job for assignment due reminders (cron)
+- Notification batching (digest emails)
+- Unsubscribe functionality
+- Notification history and analytics
+
 ### Progress Tracker
 
-- Phase 11 complete: File Upload Integration with Cloudinary
-- 11/18 phases completed
-- Next phase: Phase 12 — Notification System (Email and In-App)
+- Phase 12 complete: Notification System (Email and In-App)
+- 12/18 phases completed
+- Next phase: Phase 13 — Reports and Analytics APIs

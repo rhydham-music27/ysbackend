@@ -87,8 +87,6 @@ export enum SubmissionStatus {
   RESUBMITTED = 'resubmitted',
 }
 
-// Future enums (placeholders for subsequent phases):
-// export enum NotificationType { EMAIL = 'email', IN_APP = 'in-app', SMS = 'sms' }
 
 // Grading system enums
 export enum GradeType {
@@ -130,5 +128,32 @@ export enum FileCategory {
   ASSIGNMENT_MATERIAL = 'assignment_material',
   COURSE_MATERIAL = 'course_material',
   DOCUMENT = 'document',
+}
+
+// Notification system enums (Phase 12)
+export enum NotificationType {
+  EMAIL = 'email',
+  IN_APP = 'in_app',
+  BOTH = 'both',
+  SMS = 'sms',
+}
+
+export enum NotificationCategory {
+  ASSIGNMENT_DUE = 'assignment_due',
+  ASSIGNMENT_GRADED = 'assignment_graded',
+  GRADE_POSTED = 'grade_posted',
+  ATTENDANCE_MARKED = 'attendance_marked',
+  COURSE_ENROLLMENT = 'course_enrollment',
+  CLASS_SCHEDULED = 'class_scheduled',
+  CLASS_CANCELLED = 'class_cancelled',
+  ANNOUNCEMENT = 'announcement',
+  SYSTEM = 'system',
+}
+
+export enum NotificationPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  URGENT = 'urgent',
 }
 

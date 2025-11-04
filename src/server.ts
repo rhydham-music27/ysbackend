@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import app from './app';
 import connectDB, { disconnectDB } from './config/database';
+import { verifyEmailConnection } from './config/email';
 
 dotenv.config();
 
@@ -14,6 +15,14 @@ async function startServer(): Promise<void> {
     await connectDB();
     // eslint-disable-next-line no-console
     console.log('✅ Database connected successfully');
+
+    // Verify email connection (non-blocking)
+    try {
+      await verifyEmailConnection();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('⚠️ Email service not configured (notifications will be in-app only)');
+    }
 
     server = app.listen(PORT, () => {
       const timestamp = new Date().toISOString();

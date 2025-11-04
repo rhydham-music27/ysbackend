@@ -12,6 +12,8 @@ import {
 } from '../services/assignmentService';
 import { AssignmentStatus, FileCategory } from '../types/enums';
 import { uploadMultipleToCloudinary, deleteFromCloudinary, extractPublicIdFromUrl } from '../utils/fileUpload';
+import { notifyAssignmentGraded, notifyAssignmentDue } from '../services/notificationService';
+import Course from '../models/Course';
 
 export async function createAssignmentController(req: Request, res: Response, next: NextFunction) {
   try {
@@ -152,6 +154,21 @@ export async function gradeSubmissionController(req: Request, res: Response, nex
     const { id, submissionId } = req.params as { id: string; submissionId: string };
     const { grade, feedback } = req.body as { grade: number; feedback?: string };
     const assignment = await gradeSubmission({ assignmentId: id, submissionId, grade, feedback, gradedBy: (req as any).user._id.toString() });
+    
+    // Trigger notification after successful grading
+    const submission = assignment.submissions.find((s) => s._id?.toString() === submissionId);
+    if (submission && submission.student) {
+      const maxGrade = submission.maxGrade || assignment.maxGrade;
+      notifyAssignmentGraded(
+        submission.student.toString(),
+        id,
+        assignment.title,
+        submission.grade || grade,
+        maxGrade,
+        submission.feedback || feedback
+      ).catch((err) => console.error('Notification error:', err));
+    }
+    
     res.status(200).json({ success: true, message: 'Submission graded successfully', data: { assignment } });
   } catch (error) {
     next(error);
@@ -205,6 +222,20 @@ export async function publishAssignment(req: Request, res: Response, next: NextF
   try {
     const { id } = req.params;
     const assignment = await updateAssignment({ assignmentId: id, updates: { status: AssignmentStatus.PUBLISHED } as any, updatedBy: (req as any).user._id.toString() });
+    
+    // Optional: Trigger assignment due notification if due within 24 hours
+    const course = await Course.findById(assignment.course).populate('students');
+    if (course && course.students && Array.isArray(course.students)) {
+      const studentIds = course.students.map((s: any) => s._id.toString());
+      const hoursUntilDue = (assignment.dueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60);
+      
+      if (hoursUntilDue > 0 && hoursUntilDue <= 24) {
+        notifyAssignmentDue(id, studentIds, assignment.title, assignment.dueDate, assignment.course.toString()).catch(
+          (err) => console.error('Notification error:', err)
+        );
+      }
+    }
+    
     res.status(200).json({ success: true, message: 'Assignment published successfully', data: { assignment } });
   } catch (error) {
     next(error);
