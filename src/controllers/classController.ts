@@ -28,9 +28,9 @@ export async function createClass(req: Request, res: Response, next: NextFunctio
     }
 
     const classDoc = await Class.create(req.body);
-    await classDoc
-      .populate('course', 'name code')
-      .populate('teacher', 'profile.firstName profile.lastName email')
+    await (await (await classDoc
+      .populate('course', 'name code'))
+      .populate('teacher', 'profile.firstName profile.lastName email'))
       .populate('coordinator', 'profile.firstName profile.lastName email');
 
     res.status(201).json({ success: true, message: 'Class created successfully', data: { class: classDoc } });
@@ -182,7 +182,11 @@ export async function getMyClasses(req: Request, res: Response, next: NextFuncti
 
 export async function getUpcomingClasses(_req: Request, res: Response, next: NextFunction) {
   try {
-    const classes = await Class.findUpcoming().populate('course', 'name code').populate('teacher', 'profile.firstName profile.lastName email');
+    const classes = await Class.findUpcoming();
+    await Class.populate(classes, [
+      { path: 'course', select: 'name code' },
+      { path: 'teacher', select: 'profile.firstName profile.lastName email' },
+    ]);
     res.status(200).json({ success: true, data: { classes, count: classes.length } });
   } catch (error) {
     next(error);

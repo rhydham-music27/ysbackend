@@ -23,6 +23,7 @@ yarn-error.log*
 
 # IDE
 .vscode/
+!frontend/.vscode/**
 .idea/
 *.swp
 *.swo

@@ -9,7 +9,7 @@ export interface IUser extends Document {
   provider: OAuthProvider;
   profile: {
     firstName: string;
-    lastName: string;
+    lastName?: string;
     phone?: string;
     avatar?: string;
     dateOfBirth?: Date;
@@ -42,7 +42,7 @@ const emailRegex = /^(?:[a-zA-Z0-9_'^&+\-])+(?:\.(?:[a-zA-Z0-9_'^&+\-])+)*@(?:[a
 const ProfileSchema = new Schema(
   {
     firstName: { type: String, required: true, trim: true },
-    lastName: { type: String, required: true, trim: true },
+    lastName: { type: String, trim: true },
     phone: { type: String, trim: true },
     avatar: { type: String, trim: true },
     dateOfBirth: { type: Date },
@@ -96,9 +96,13 @@ UserSchema.pre('save', async function preSave(next) {
     const user = this as IUser;
 
     // Provider-based validations
-    if (user.provider === OAuthProvider.LOCAL && !user.password) {
-      return next(new Error('Password is required for local provider'));
+    if (user.provider === OAuthProvider.LOCAL) {
+      // Only enforce password rule on creation or password change
+      if ((user.isNew || user.isModified('password')) && !user.password) {
+        return next(new Error('Password is required for local provider'));
+      }
     }
+
     if (user.provider === OAuthProvider.GOOGLE && !user.googleId) {
       return next(new Error('googleId is required when provider is google'));
     }
@@ -108,11 +112,12 @@ UserSchema.pre('save', async function preSave(next) {
       user.password = await hashPassword(user.password);
     }
 
-    return next();
+    next();
   } catch (err) {
-    return next(err as Error);
+    next(err as Error);
   }
 });
+
 
 // Unique email error message improvement
 UserSchema.post('save', function postSave(error: any, _doc: any, next: (err?: any) => void) {

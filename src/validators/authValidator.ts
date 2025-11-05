@@ -16,8 +16,7 @@ export const registerValidation: ValidationChain[] = [
     .isLength({ min: 2, max: 50 })
     .withMessage('First name must be 2-50 characters'),
   body('profile.lastName')
-    .notEmpty()
-    .withMessage('Last name is required')
+    .optional()
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('Last name must be 2-50 characters'),
@@ -85,10 +84,11 @@ export const updateProfileValidation: ValidationChain[] = [
 export function handleValidationErrors(req: Request, res: Response, next: NextFunction) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    const formatted = errors.array().map((err) => ({ field: err.param, message: err.msg }));
+    const formatted = errors.array().map((err) => {
+      const field = 'path' in err ? err.path : 'non_field_error';
+      return { field, message: err.msg };
+    });
     return res.status(400).json({ success: false, errors: formatted });
   }
   return next();
 }
-
-

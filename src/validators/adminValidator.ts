@@ -29,8 +29,7 @@ export const createUserValidation: ValidationChain[] = [
     .isLength({ min: 2, max: 50 })
     .withMessage('First name must be 2-50 characters'),
   body('profile.lastName')
-    .notEmpty()
-    .withMessage('Last name is required')
+    .optional()
     .trim()
     .isLength({ min: 2, max: 50 })
     .withMessage('Last name must be 2-50 characters'),
@@ -105,8 +104,9 @@ export const bulkImportUsersValidation: ValidationChain[] = [
     .notEmpty()
     .withMessage('First name is required for each user'),
   body('users.*.profile.lastName')
-    .notEmpty()
-    .withMessage('Last name is required for each user'),
+    .optional()
+    .isLength({ min: 2, max: 50 })
+    .withMessage('Last name must be 2-50 characters'),
 ];
 
 export const bulkEnrollmentValidation: ValidationChain[] = [

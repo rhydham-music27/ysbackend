@@ -163,7 +163,7 @@ export async function googleOAuthCallback(req: Request, res: Response, next: Nex
     // If FRONTEND_URL is provided, redirect with tokens (optional web flow)
     const frontendUrl = process.env.FRONTEND_URL;
     if (frontendUrl) {
-      const redirectUrl = `${frontendUrl}/auth/callback?accessToken=${encodeURIComponent(
+      const redirectUrl = `${frontendUrl}/callback?accessToken=${encodeURIComponent(
         accessToken
       )}&refreshToken=${encodeURIComponent(refreshToken)}`;
       return res.redirect(302, redirectUrl);
@@ -286,6 +286,12 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
     if (address !== undefined) {
       user.profile.address = { ...user.profile.address, ...address };
     }
+    console.log('Saving user:', {
+      isNew: user.isNew,
+      isModifiedPassword: user.isModified('password'),
+      provider: user.provider,
+      hasPassword: !!user.password,
+    });
 
     await user.save();
 
