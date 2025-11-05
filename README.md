@@ -12,6 +12,8 @@ Your Shikshak is an EdTech platform designed to support five user roles: Admin, 
 - Multer (v1.4.5) - Multipart/form-data handling
 - Nodemailer (v6.9.0) - Email delivery service
 - Winston (v3.11.0) - Logging
+- swagger-ui-express (v5.0.0) - Swagger UI middleware
+- swagger-jsdoc (v6.2.8) - OpenAPI spec generator
 
 ### Project Structure (MVC)
 ```
@@ -69,7 +71,97 @@ npm run format
 ```
 
 ### API Documentation
-Swagger/OpenAPI documentation will be added in a future phase.
+
+All route files contain JSDoc comments with `@route`, `@desc`, `@access` tags that Swagger automatically uses to generate documentation. When adding new endpoints:
+
+- Follow the existing JSDoc pattern in route files
+- Keep JSDoc comments concise in route files
+- Detailed schemas are defined in `src/config/swagger.ts` for reusability
+- Run `npm run dev` and visit `/api-docs` to see updated documentation
+- The swagger-jsdoc library scans route files and generates OpenAPI spec automatically
+
+## API Documentation (Swagger/OpenAPI)
+
+The API documentation is available through Swagger UI, providing interactive documentation with request/response schemas, authentication requirements, and 'Try it out' functionality for testing endpoints directly in the browser.
+
+### Accessing Swagger UI
+
+1. Start the development server: `npm run dev`
+2. Open your browser and navigate to: **http://localhost:5000/api-docs**
+3. Swagger UI displays all API endpoints grouped by tags (Authentication, Courses, Assignments, etc.)
+4. Click on any endpoint to see detailed information (parameters, request body, responses)
+5. Click 'Try it out' to test endpoints directly in the browser
+6. For protected endpoints, click the 'Authorize' button and enter your JWT token
+7. Format: `Bearer <your-access-token>` (get token from `/api/v1/auth/login` or `/api/v1/auth/register`)
+8. OpenAPI JSON specification is available at: **http://localhost:5000/api-docs.json**
+
+### Using Swagger for API Testing
+
+1. **Authenticate:**
+   - Navigate to `POST /api/v1/auth/register` or `POST /api/v1/auth/login`
+   - Click 'Try it out'
+   - Enter request body (email, password, profile)
+   - Click 'Execute'
+   - Copy `accessToken` from the response
+
+2. **Authorize:**
+   - Click the 'Authorize' button at the top of Swagger UI
+   - Enter: `Bearer <copied-access-token>`
+   - Click 'Authorize' and then 'Close'
+   - All subsequent requests will automatically include this token
+
+3. **Test Endpoints:**
+   - Navigate to any protected endpoint
+   - Click 'Try it out'
+   - Fill in required parameters and request body
+   - Click 'Execute'
+   - View response with status code, headers, and body
+
+4. **Test Different Roles:**
+   - Register/login as different roles (admin, manager, teacher, coordinator, student)
+   - Test role-specific endpoints to verify RBAC enforcement
+   - Observe 403 Forbidden responses for unauthorized access
+
+### API Endpoint Groups
+
+The Swagger UI organizes endpoints into the following groups:
+
+- **Authentication:** Register, login, logout, OAuth, profile management
+- **Courses:** Course CRUD, enrollment, capacity checks
+- **Classes:** Class session CRUD, student management
+- **Assignments:** Assignment CRUD, submission, grading
+- **Grades:** Grade CRUD, GPA calculation, statistics
+- **Attendance:** Attendance marking, viewing, statistics
+- **Schedules:** Schedule CRUD, conflict detection, weekly timetable
+- **Notifications:** Notification CRUD, read/unread management
+- **Reports:** Student performance, teacher workload, enrollment trends, attendance statistics
+- **Admin:** User management, bulk operations, system settings, audit logs
+- **Manager:** Approval workflows, teacher oversight, manager dashboard
+- **Coordinator:** Class coordination, attendance monitoring, student communication
+- **Student:** Student dashboard, course enrollment/drop, progress tracking
+- **Leads:** Lead management (business-specific)
+- **FinalClass:** Final class management (business-specific)
+
+### OpenAPI Specification
+
+- **Version:** OpenAPI 3.0.0
+- **Format:** JSON (auto-generated from JSDoc comments)
+- **Location:** http://localhost:5000/api-docs.json
+- **Generation:** swagger-jsdoc scans route files for JSDoc comments
+- **Schemas:** Reusable component schemas defined in `src/config/swagger.ts`
+- **Security:** JWT Bearer token authentication documented
+- **Tags:** Endpoints grouped by functional area
+- **Examples:** Request and response examples for all endpoints
+
+### External Tools Integration
+
+The OpenAPI specification can be used with external tools:
+
+- **Postman:** Import OpenAPI spec from http://localhost:5000/api-docs.json
+- **Insomnia:** Import OpenAPI spec for API testing
+- **Code Generators:** Use OpenAPI spec to generate client SDKs (TypeScript, Python, Java)
+- **API Testing:** Use spec for automated API testing frameworks
+- **Frontend Integration:** Generate TypeScript types from OpenAPI spec
 
 ## Authentication
 
@@ -305,6 +397,15 @@ curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
 
 ### Completed Features (updated)
 
+- API documentation with Swagger/OpenAPI 3.0
+- Interactive Swagger UI at /api-docs
+- Auto-generated documentation from JSDoc comments
+- Comprehensive endpoint documentation (request/response schemas)
+- Authentication and RBAC documentation
+- 'Try it out' functionality for endpoint testing
+- Reusable component schemas
+- Example requests and responses
+- OpenAPI JSON spec export
 - Student portal APIs
 - Comprehensive student dashboard (single API call)
 - Self-service course enrollment and drop
@@ -1351,9 +1452,9 @@ The coordinator dashboard system provides class-level management and coordinatio
 
 - Phase 16 complete: Class Coordinator-Specific APIs
 - Phase 17 complete: Student Portal APIs
-- 17/18 phases completed
-- Next phase: Phase 18 — API Documentation with Swagger/OpenAPI
-- Enhancement phases: Phase 19 — Error Handling, Logging, and Validation Enhancements
+- Phase 18 complete: API Documentation with Swagger/OpenAPI
+- 18/18 core phases completed
+- Enhancement phases: Phase 19 — Error Handling, Logging, and Validation Enhancements (handled by another team)
 
 ## Student Portal APIs (Phase 17)
 

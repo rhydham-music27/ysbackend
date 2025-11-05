@@ -20,6 +20,8 @@ import coordinatorRoutes from './routes/coordinatorRoutes';
 import studentRoutes from './routes/studentRoutes';
 import passport from 'passport';
 import { initializePassport } from './config/passport';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './config/swagger';
 
 dotenv.config();
 
@@ -64,6 +66,16 @@ app.get(`/api/${apiVersion}/health`, (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', version: apiVersion, timestamp: new Date() });
 });
 
+// Swagger API Documentation
+// Access at: http://localhost:5000/api-docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
+
+// Serve OpenAPI JSON spec
+app.get('/api-docs.json', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 // Import routes here (authRoutes, courseRoutes, etc.)
 app.use(`/api/${apiVersion}/auth`, authRoutes);
 app.use(`/api/${apiVersion}/classes`, finalClassRoutes);
@@ -80,7 +92,6 @@ app.use(`/api/${apiVersion}/admin`, adminRoutes);
 app.use(`/api/${apiVersion}/manager`, managerRoutes);
 app.use(`/api/${apiVersion}/coordinator`, coordinatorRoutes);
 app.use(`/api/${apiVersion}/student`, studentRoutes);
-// Future routes: swagger documentation, error handling enhancements, etc.
 
 // 404 handler
 app.use((req: Request, res: Response) => {

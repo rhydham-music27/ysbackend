@@ -25,38 +25,108 @@ import {
 const router = Router();
 
 /**
- * @route   GET /api/v1/manager/dashboard
- * @desc    Get manager dashboard with pending approvals and statistics
- * @access  Private (Manager, Admin)
+ * @swagger
+ * /api/v1/manager/dashboard:
+ *   get:
+ *     summary: Get manager dashboard with pending approvals and statistics
+ *     tags: [Manager]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Manager dashboard data
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
  */
 router.get('/dashboard', authenticate, authorizeMinRole(UserRole.MANAGER), getManagerDashboardController);
 
 /**
- * @route   GET /api/v1/manager/course-stats
- * @desc    Get course statistics for manager overview
- * @access  Private (Manager, Admin)
+ * @swagger
+ * /api/v1/manager/course-stats:
+ *   get:
+ *     summary: Get course statistics for manager overview
+ *     tags: [Manager]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Course statistics
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
  */
 router.get('/course-stats', authenticate, authorizeMinRole(UserRole.MANAGER), getCourseStats);
 
 /**
- * @route   GET /api/v1/manager/approvals/pending
- * @desc    Get all pending course and schedule approvals
- * @access  Private (Manager, Admin)
+ * @swagger
+ * /api/v1/manager/approvals/pending:
+ *   get:
+ *     summary: Get all pending course and schedule approvals
+ *     tags: [Manager]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Pending approvals
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
  */
 router.get('/approvals/pending', authenticate, authorizeMinRole(UserRole.MANAGER), getPendingApprovals);
 
 /**
- * @route   GET /api/v1/manager/teachers/performance
- * @desc    Get performance metrics for all teachers
- * @access  Private (Manager, Admin)
+ * @swagger
+ * /api/v1/manager/teachers/performance:
+ *   get:
+ *     summary: Get performance metrics for all teachers
+ *     tags: [Manager]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All teachers performance metrics
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
  */
 router.get('/teachers/performance', authenticate, authorizeMinRole(UserRole.MANAGER), getAllTeachersPerformanceController);
 
 /**
- * @route   PATCH /api/v1/manager/courses/:id/approve
- * @desc    Approve a course creation request
- * @access  Private (Manager, Admin)
- * @body    { approvalNotes? }
+ * @swagger
+ * /api/v1/manager/courses/{id}/approve:
+ *   patch:
+ *     summary: Approve a course creation request
+ *     tags: [Manager]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               approvalNotes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Course approved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
+ *       404:
+ *         description: Course not found
  */
 router.patch(
   '/courses/:id/approve',
@@ -69,10 +139,41 @@ router.patch(
 );
 
 /**
- * @route   PATCH /api/v1/manager/courses/:id/reject
- * @desc    Reject a course creation request
- * @access  Private (Manager, Admin)
- * @body    { approvalNotes } (required - rejection reason)
+ * @swagger
+ * /api/v1/manager/courses/{id}/reject:
+ *   patch:
+ *     summary: Reject a course creation request
+ *     tags: [Manager]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [approvalNotes]
+ *             properties:
+ *               approvalNotes:
+ *                 type: string
+ *                 description: Rejection reason (required)
+ *     responses:
+ *       200:
+ *         description: Course rejected successfully
+ *       400:
+ *         description: Validation error - approvalNotes required
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
+ *       404:
+ *         description: Course not found
  */
 router.patch(
   '/courses/:id/reject',
@@ -85,10 +186,36 @@ router.patch(
 );
 
 /**
- * @route   PATCH /api/v1/manager/schedules/:id/approve
- * @desc    Approve a schedule creation/change request
- * @access  Private (Manager, Admin)
- * @body    { approvalNotes? }
+ * @swagger
+ * /api/v1/manager/schedules/{id}/approve:
+ *   patch:
+ *     summary: Approve a schedule creation/change request
+ *     tags: [Manager]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               approvalNotes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Schedule approved successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
+ *       404:
+ *         description: Schedule not found
  */
 router.patch(
   '/schedules/:id/approve',
@@ -101,10 +228,41 @@ router.patch(
 );
 
 /**
- * @route   PATCH /api/v1/manager/schedules/:id/reject
- * @desc    Reject a schedule creation/change request
- * @access  Private (Manager, Admin)
- * @body    { approvalNotes } (required - rejection reason)
+ * @swagger
+ * /api/v1/manager/schedules/{id}/reject:
+ *   patch:
+ *     summary: Reject a schedule creation/change request
+ *     tags: [Manager]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [approvalNotes]
+ *             properties:
+ *               approvalNotes:
+ *                 type: string
+ *                 description: Rejection reason (required)
+ *     responses:
+ *       200:
+ *         description: Schedule rejected successfully
+ *       400:
+ *         description: Validation error - approvalNotes required
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
+ *       404:
+ *         description: Schedule not found
  */
 router.patch(
   '/schedules/:id/reject',
@@ -117,9 +275,28 @@ router.patch(
 );
 
 /**
- * @route   GET /api/v1/manager/teachers/:id/performance
- * @desc    Get performance metrics for a specific teacher
- * @access  Private (Manager, Admin)
+ * @swagger
+ * /api/v1/manager/teachers/{id}/performance:
+ *   get:
+ *     summary: Get performance metrics for a specific teacher
+ *     tags: [Manager]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Teacher performance metrics
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
+ *       404:
+ *         description: Teacher not found
  */
 router.get(
   '/teachers/:id/performance',

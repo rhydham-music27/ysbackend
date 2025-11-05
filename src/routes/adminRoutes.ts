@@ -37,17 +37,46 @@ import {
 const router = Router();
 
 /**
- * @route   GET /api/v1/admin/users/stats
- * @desc    Get user statistics (total, by role, active/inactive, recent)
- * @access  Private (Admin only)
+ * @swagger
+ * /api/v1/admin/users/stats:
+ *   get:
+ *     summary: Get user statistics (total, by role, active/inactive, recent)
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User statistics
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
  */
 router.get('/users/stats', authenticate, authorize(UserRole.ADMIN), getUserStats);
 
 /**
- * @route   POST /api/v1/admin/bulk/import-users
- * @desc    Bulk import users (max 100 per request)
- * @access  Private (Admin only)
- * @body    { users: [{ email, password, role, profile: { firstName, lastName, phone? } }] }
+ * @swagger
+ * /api/v1/admin/bulk/import-users:
+ *   post:
+ *     summary: Bulk import users (max 100 per request)
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/BulkImportUsersRequest'
+ *     responses:
+ *       200:
+ *         description: Bulk import results (partial success supported)
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
  */
 router.post(
   '/bulk/import-users',
@@ -59,10 +88,37 @@ router.post(
 );
 
 /**
- * @route   POST /api/v1/admin/bulk/enroll-students
- * @desc    Bulk enroll students in a course (max 100 per request)
- * @access  Private (Admin only)
- * @body    { courseId, studentIds: [string] }
+ * @swagger
+ * /api/v1/admin/bulk/enroll-students:
+ *   post:
+ *     summary: Bulk enroll students in a course (max 100 per request)
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [courseId, studentIds]
+ *             properties:
+ *               courseId:
+ *                 type: string
+ *               studentIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 maxItems: 100
+ *     responses:
+ *       200:
+ *         description: Bulk enrollment results
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
  */
 router.post(
   '/bulk/enroll-students',
@@ -74,18 +130,70 @@ router.post(
 );
 
 /**
- * @route   GET /api/v1/admin/settings
- * @desc    Get all system settings or by category
- * @access  Private (Admin only)
- * @query   { category? }
+ * @swagger
+ * /api/v1/admin/settings:
+ *   get:
+ *     summary: Get all system settings or by category
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: System settings
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
  */
 router.get('/settings', authenticate, authorize(UserRole.ADMIN), getSettings);
 
 /**
- * @route   GET /api/v1/admin/audit-logs
- * @desc    Get audit logs with filters
- * @access  Private (Admin only)
- * @query   { adminId?, action?, targetUserId?, startDate?, endDate?, limit? }
+ * @swagger
+ * /api/v1/admin/audit-logs:
+ *   get:
+ *     summary: Get audit logs with filters
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: adminId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: targetUserId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: Audit logs
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
  */
 router.get(
   '/audit-logs',
@@ -97,10 +205,39 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/admin/audit-logs/my
- * @desc    Get audit logs for current admin
- * @access  Private (Admin only)
- * @query   { action?, startDate?, endDate?, limit? }
+ * @swagger
+ * /api/v1/admin/audit-logs/my:
+ *   get:
+ *     summary: Get audit logs for current admin
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: action
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: Current admin's audit logs
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
  */
 router.get(
   '/audit-logs/my',
@@ -112,10 +249,51 @@ router.get(
 );
 
 /**
- * @route   POST /api/v1/admin/users
- * @desc    Create a new user (admin operation)
- * @access  Private (Admin only)
- * @body    { email, password, role, profile: { firstName, lastName, phone? }, isActive? }
+ * @swagger
+ * /api/v1/admin/users:
+ *   post:
+ *     summary: Create a new user (admin operation)
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, password, role, profile]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *                 minLength: 8
+ *               role:
+ *                 type: string
+ *                 enum: [admin, manager, teacher, coordinator, student]
+ *               profile:
+ *                 type: object
+ *                 required: [firstName, lastName]
+ *                 properties:
+ *                   firstName:
+ *                     type: string
+ *                   lastName:
+ *                     type: string
+ *                   phone:
+ *                     type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       201:
+ *         description: User created successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
  */
 router.post(
   '/users',
@@ -127,10 +305,42 @@ router.post(
 );
 
 /**
- * @route   GET /api/v1/admin/users
- * @desc    List all users with filters and pagination
- * @access  Private (Admin only)
- * @query   { role?, isActive?, search?, page?, limit? }
+ * @swagger
+ * /api/v1/admin/users:
+ *   get:
+ *     summary: List all users with filters and pagination
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: role
+ *         schema:
+ *           type: string
+ *           enum: [admin, manager, teacher, coordinator, student]
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: List of users
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
  */
 router.get(
   '/users',
@@ -142,9 +352,32 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/admin/users/:id
- * @desc    Get a single user by ID
- * @access  Private (Admin only)
+ * @swagger
+ * /api/v1/admin/users/{id}:
+ *   get:
+ *     summary: Get a single user by ID
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/UserResponse'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
+ *       404:
+ *         description: User not found
  */
 router.get(
   '/users/:id',
@@ -156,10 +389,47 @@ router.get(
 );
 
 /**
- * @route   PUT /api/v1/admin/users/:id
- * @desc    Update a user (admin operation)
- * @access  Private (Admin only)
- * @body    { email?, role?, profile?, isActive? }
+ * @swagger
+ * /api/v1/admin/users/{id}:
+ *   put:
+ *     summary: Update a user (admin operation)
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               role:
+ *                 type: string
+ *                 enum: [admin, manager, teacher, coordinator, student]
+ *               profile:
+ *                 type: object
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: User updated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
+ *       404:
+ *         description: User not found
  */
 router.put(
   '/users/:id',
@@ -172,9 +442,28 @@ router.put(
 );
 
 /**
- * @route   DELETE /api/v1/admin/users/:id
- * @desc    Delete a user (hard delete, use with caution)
- * @access  Private (Admin only)
+ * @swagger
+ * /api/v1/admin/users/{id}:
+ *   delete:
+ *     summary: Delete a user (hard delete, use with caution)
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
+ *       404:
+ *         description: User not found
  */
 router.delete(
   '/users/:id',
@@ -186,10 +475,41 @@ router.delete(
 );
 
 /**
- * @route   PATCH /api/v1/admin/users/:id/role
- * @desc    Assign a role to a user
- * @access  Private (Admin only)
- * @body    { role }
+ * @swagger
+ * /api/v1/admin/users/{id}/role:
+ *   patch:
+ *     summary: Assign a role to a user
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [role]
+ *             properties:
+ *               role:
+ *                 type: string
+ *                 enum: [admin, manager, teacher, coordinator, student]
+ *     responses:
+ *       200:
+ *         description: Role assigned successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
+ *       404:
+ *         description: User not found
  */
 router.patch(
   '/users/:id/role',
@@ -202,9 +522,28 @@ router.patch(
 );
 
 /**
- * @route   PATCH /api/v1/admin/users/:id/activate
- * @desc    Activate a user account
- * @access  Private (Admin only)
+ * @swagger
+ * /api/v1/admin/users/{id}/activate:
+ *   patch:
+ *     summary: Activate a user account
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User activated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
+ *       404:
+ *         description: User not found
  */
 router.patch(
   '/users/:id/activate',
@@ -216,9 +555,28 @@ router.patch(
 );
 
 /**
- * @route   PATCH /api/v1/admin/users/:id/deactivate
- * @desc    Deactivate a user account (soft delete)
- * @access  Private (Admin only)
+ * @swagger
+ * /api/v1/admin/users/{id}/deactivate:
+ *   patch:
+ *     summary: Deactivate a user account (soft delete)
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: User deactivated successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
+ *       404:
+ *         description: User not found
  */
 router.patch(
   '/users/:id/deactivate',
@@ -230,10 +588,44 @@ router.patch(
 );
 
 /**
- * @route   PUT /api/v1/admin/settings/:key
- * @desc    Update a system setting
- * @access  Private (Admin only)
- * @body    { value }
+ * @swagger
+ * /api/v1/admin/settings/{key}:
+ *   put:
+ *     summary: Update a system setting
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: key
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [value]
+ *             properties:
+ *               value:
+ *                 oneOf:
+ *                   - type: string
+ *                   - type: number
+ *                   - type: boolean
+ *                   - type: object
+ *     responses:
+ *       200:
+ *         description: Setting updated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
+ *       404:
+ *         description: Setting not found
  */
 router.put(
   '/settings/:key',
@@ -246,9 +638,28 @@ router.put(
 );
 
 /**
- * @route   DELETE /api/v1/admin/settings/:key
- * @desc    Delete a system setting
- * @access  Private (Admin only)
+ * @swagger
+ * /api/v1/admin/settings/{key}:
+ *   delete:
+ *     summary: Delete a system setting
+ *     tags: [Admin]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: key
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Setting deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
+ *       404:
+ *         description: Setting not found
  */
 router.delete(
   '/settings/:key',

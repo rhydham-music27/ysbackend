@@ -27,10 +27,31 @@ import {
 const router = Router();
 
 /**
- * @route   GET /api/v1/reports/my/performance
- * @desc    Get performance report for current student
- * @access  Private (Student)
- * @query   { startDate?, endDate? }
+ * @swagger
+ * /api/v1/reports/my/performance:
+ *   get:
+ *     summary: Get performance report for current student
+ *     tags: [Reports]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Student performance report
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Student only
  */
 router.get(
   '/my/performance',
@@ -42,10 +63,31 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/reports/my/workload
- * @desc    Get workload report for current teacher
- * @access  Private (Teacher)
- * @query   { startDate?, endDate? }
+ * @swagger
+ * /api/v1/reports/my/workload:
+ *   get:
+ *     summary: Get workload report for current teacher
+ *     tags: [Reports]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Teacher workload report
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Teacher only
  */
 router.get(
   '/my/workload',
@@ -57,10 +99,35 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/reports/enrollment-trends
- * @desc    Get course enrollment trends and statistics
- * @access  Private (Manager, Admin)
- * @query   { startDate?, endDate?, limit? }
+ * @swagger
+ * /api/v1/reports/enrollment-trends:
+ *   get:
+ *     summary: Get course enrollment trends and statistics
+ *     tags: [Reports]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: Enrollment trends report
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
  */
 router.get(
   '/enrollment-trends',
@@ -72,10 +139,43 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/reports/attendance-statistics
- * @desc    Get attendance statistics with optional filters
- * @access  Private (Teacher, Manager, Admin)
- * @query   { courseId?, teacherId?, classId?, startDate?, endDate? }
+ * @swagger
+ * /api/v1/reports/attendance-statistics:
+ *   get:
+ *     summary: Get attendance statistics with optional filters
+ *     tags: [Reports]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: courseId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: teacherId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: classId
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Attendance statistics report
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Teacher, Manager, or Admin role
  */
 router.get(
   '/attendance-statistics',
@@ -87,17 +187,58 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/reports/dashboard
- * @desc    Get dashboard summary for current user (role-specific)
- * @access  Private (All authenticated users)
+ * @swagger
+ * /api/v1/reports/dashboard:
+ *   get:
+ *     summary: Get dashboard summary for current user (role-specific)
+ *     tags: [Reports]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dashboard summary
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/DashboardResponse'
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/dashboard', authenticate, getDashboardSummary);
 
 /**
- * @route   GET /api/v1/reports/students/:id/performance
- * @desc    Get comprehensive performance report for a student
- * @access  Private (Teacher, Manager, Admin)
- * @query   { startDate?, endDate? }
+ * @swagger
+ * /api/v1/reports/students/{id}/performance:
+ *   get:
+ *     summary: Get comprehensive performance report for a student
+ *     tags: [Reports]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Student performance report
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Teacher, Manager, or Admin role
+ *       404:
+ *         description: Student not found
  */
 router.get(
   '/students/:id/performance',
@@ -110,10 +251,38 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/reports/teachers/:id/workload
- * @desc    Get workload report for a teacher
- * @access  Private (Manager, Admin)
- * @query   { startDate?, endDate? }
+ * @swagger
+ * /api/v1/reports/teachers/{id}/workload:
+ *   get:
+ *     summary: Get workload report for a teacher
+ *     tags: [Reports]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: Teacher workload report
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
+ *       404:
+ *         description: Teacher not found
  */
 router.get(
   '/teachers/:id/workload',
@@ -126,9 +295,28 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/reports/courses/:id/analytics
- * @desc    Get comprehensive analytics for a specific course
- * @access  Private (Teacher, Manager, Admin)
+ * @swagger
+ * /api/v1/reports/courses/{id}/analytics:
+ *   get:
+ *     summary: Get comprehensive analytics for a specific course
+ *     tags: [Reports]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course analytics report
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Teacher, Manager, or Admin role
+ *       404:
+ *         description: Course not found
  */
 router.get(
   '/courses/:id/analytics',
@@ -140,9 +328,28 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/reports/classes/:id/performance
- * @desc    Get performance report for a specific class session
- * @access  Private (Teacher, Manager, Admin)
+ * @swagger
+ * /api/v1/reports/classes/{id}/performance:
+ *   get:
+ *     summary: Get performance report for a specific class session
+ *     tags: [Reports]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Class performance report
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Teacher, Manager, or Admin role
+ *       404:
+ *         description: Class not found
  */
 router.get(
   '/classes/:id/performance',

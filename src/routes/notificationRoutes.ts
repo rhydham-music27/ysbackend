@@ -23,46 +23,127 @@ import {
 const router = Router();
 
 /**
- * @route   GET /api/v1/notifications/my
- * @desc    Get notifications for current user
- * @access  Private (All authenticated users)
- * @query   { category?, isRead?, limit?, priority? }
+ * @swagger
+ * /api/v1/notifications/my:
+ *   get:
+ *     summary: Get notifications for current user
+ *     tags: [Notifications]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [assignment_due, assignment_graded, grade_posted, attendance_marked, course_enrollment, class_scheduled, class_cancelled, announcement, system]
+ *       - in: query
+ *         name: isRead
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: [low, medium, high, urgent]
+ *     responses:
+ *       200:
+ *         description: List of notifications
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/my', authenticate, notificationQueryValidation, handleNotificationValidationErrors, getMyNotifications);
 
 /**
- * @route   GET /api/v1/notifications/my/unread
- * @desc    Get unread notifications for current user
- * @access  Private (All authenticated users)
+ * @swagger
+ * /api/v1/notifications/my/unread:
+ *   get:
+ *     summary: Get unread notifications for current user
+ *     tags: [Notifications]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of unread notifications
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/my/unread', authenticate, getUnreadNotifications);
 
 /**
- * @route   GET /api/v1/notifications/my/count
- * @desc    Get count of unread notifications for current user
- * @access  Private (All authenticated users)
+ * @swagger
+ * /api/v1/notifications/my/count:
+ *   get:
+ *     summary: Get count of unread notifications for current user
+ *     tags: [Notifications]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Unread notification count
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/my/count', authenticate, getUnreadCount);
 
 /**
- * @route   PATCH /api/v1/notifications/my/read-all
- * @desc    Mark all notifications as read for current user
- * @access  Private (All authenticated users)
+ * @swagger
+ * /api/v1/notifications/my/read-all:
+ *   patch:
+ *     summary: Mark all notifications as read for current user
+ *     tags: [Notifications]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All notifications marked as read
+ *       401:
+ *         description: Unauthorized
  */
 router.patch('/my/read-all', authenticate, markAllAsRead);
 
 /**
- * @route   DELETE /api/v1/notifications/my/all
- * @desc    Delete all notifications for current user
- * @access  Private (All authenticated users)
+ * @swagger
+ * /api/v1/notifications/my/all:
+ *   delete:
+ *     summary: Delete all notifications for current user
+ *     tags: [Notifications]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: All notifications deleted
+ *       401:
+ *         description: Unauthorized
  */
 router.delete('/my/all', authenticate, deleteAllNotifications);
 
 /**
- * @route   POST /api/v1/notifications
- * @desc    Create a notification for a user (manual)
- * @access  Private (Manager, Admin)
- * @body    { userId, type, category, priority?, title, message, metadata?, expiresAt? }
+ * @swagger
+ * /api/v1/notifications:
+ *   post:
+ *     summary: Create a notification for a user (manual)
+ *     tags: [Notifications]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateNotificationRequest'
+ *     responses:
+ *       201:
+ *         description: Notification created successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
  */
 router.post(
   '/',
@@ -74,16 +155,54 @@ router.post(
 );
 
 /**
- * @route   PATCH /api/v1/notifications/:id/read
- * @desc    Mark a notification as read
- * @access  Private (All authenticated users - own notifications only)
+ * @swagger
+ * /api/v1/notifications/{id}/read:
+ *   patch:
+ *     summary: Mark a notification as read
+ *     tags: [Notifications]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Notification marked as read
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - can only mark own notifications
+ *       404:
+ *         description: Notification not found
  */
 router.patch('/:id/read', authenticate, notificationIdParamValidation, handleNotificationValidationErrors, markAsRead);
 
 /**
- * @route   PATCH /api/v1/notifications/:id/unread
- * @desc    Mark a notification as unread
- * @access  Private (All authenticated users - own notifications only)
+ * @swagger
+ * /api/v1/notifications/{id}/unread:
+ *   patch:
+ *     summary: Mark a notification as unread
+ *     tags: [Notifications]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Notification marked as unread
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - can only mark own notifications
+ *       404:
+ *         description: Notification not found
  */
 router.patch(
   '/:id/unread',
@@ -94,9 +213,28 @@ router.patch(
 );
 
 /**
- * @route   DELETE /api/v1/notifications/:id
- * @desc    Delete a notification
- * @access  Private (All authenticated users - own notifications only)
+ * @swagger
+ * /api/v1/notifications/{id}:
+ *   delete:
+ *     summary: Delete a notification
+ *     tags: [Notifications]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Notification deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - can only delete own notifications
+ *       404:
+ *         description: Notification not found
  */
 router.delete(
   '/:id',
