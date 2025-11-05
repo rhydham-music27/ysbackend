@@ -2,6 +2,7 @@ import dotenv from 'dotenv';
 import app from './app';
 import connectDB, { disconnectDB } from './config/database';
 import { verifyEmailConnection } from './config/email';
+import logger from './config/logger';
 
 dotenv.config();
 
@@ -13,25 +14,21 @@ let server: ReturnType<typeof app.listen>;
 async function startServer(): Promise<void> {
   try {
     await connectDB();
-    // eslint-disable-next-line no-console
-    console.log('✅ Database connected successfully');
+    logger.info('✅ Database connected successfully');
 
     // Verify email connection (non-blocking)
     try {
       await verifyEmailConnection();
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn('⚠️ Email service not configured (notifications will be in-app only)');
+      logger.warn('⚠️ Email service not configured (notifications will be in-app only)');
     }
 
     server = app.listen(PORT, () => {
       const timestamp = new Date().toISOString();
-      // eslint-disable-next-line no-console
-      console.log(`🚀 Server running on port ${PORT} in ${NODE_ENV} mode (${timestamp})`);
+      logger.info('🚀 Server running', { port: PORT, environment: NODE_ENV, timestamp });
     });
   } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error('❌ Failed to start server:', error);
+    logger.error('❌ Failed to start server', { error: (error as any)?.message, stack: (error as any)?.stack });
     process.exit(1);
   }
 }
@@ -40,8 +37,7 @@ void startServer();
 
 // Unhandled promise rejections
 process.on('unhandledRejection', async (reason: unknown) => {
-  // eslint-disable-next-line no-console
-  console.error('UNHANDLED REJECTION:', reason);
+  logger.error('UNHANDLED REJECTION', { reason });
   try {
     await disconnectDB();
   } finally {
@@ -51,8 +47,7 @@ process.on('unhandledRejection', async (reason: unknown) => {
 
 // Uncaught exceptions
 process.on('uncaughtException', async (error: Error) => {
-  // eslint-disable-next-line no-console
-  console.error('UNCAUGHT EXCEPTION:', error);
+  logger.error('UNCAUGHT EXCEPTION', { error: error.message, stack: error.stack });
   try {
     await disconnectDB();
   } finally {
@@ -62,8 +57,7 @@ process.on('uncaughtException', async (error: Error) => {
 
 // Graceful shutdown on SIGTERM
 process.on('SIGTERM', async () => {
-  // eslint-disable-next-line no-console
-  console.log('SIGTERM received. Shutting down gracefully...');
+  logger.info('SIGTERM received. Shutting down gracefully...');
   try {
     await disconnectDB();
   } finally {

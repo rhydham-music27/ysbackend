@@ -1630,3 +1630,101 @@ This organization provides clear separation of concerns by role.
 - Controllers use req.user._id to filter queries (e.g., courses where students includes req.user._id)
 - Service layer validates student exists and has STUDENT role before operations
 - Enrollment operations reuse existing courseService functions with built-in validation
+
+## Error Handling and Logging
+
+This project includes a production-ready error handling and logging system.
+
+- **Custom error classes:** `ValidationError`, `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `ConflictError`, `BadRequestError`, `InternalServerError`, `ServiceUnavailableError` (base `AppError`).
+- **Centralized error middleware:** Normalizes errors (Mongoose, JWT, Multer), maps to HTTP status codes, and returns consistent JSON responses with timestamp, path, and method.
+- **Winston logger:** Structured JSON logs with multiple transports and rotation; colorized console in development.
+- **Morgan integration:** HTTP request logs streamed to Winston (files in production).
+
+### Custom Error Classes
+
+- **AppError (Base):** `statusCode`, `isOperational`, `code`.
+- **ValidationError (400):** Includes `errors: { field, message }[]`.
+- **AuthenticationError (401):** Auth failures.
+- **AuthorizationError (403):** Permission failures.
+- **NotFoundError (404):** Missing resources.
+- **ConflictError (409):** Duplicate/conflict.
+- **BadRequestError (400):** Invalid input/state.
+- **InternalServerError (500):** Server/programming errors.
+- **ServiceUnavailableError (503):** Temporary outages.
+
+Usage examples:
+
+- Controllers: `throw new NotFoundError('User')` instead of `res.status(404).json(...)`.
+- Services: `throw new BadRequestError('Invalid input')` instead of `throw new Error(...)`.
+- Middlewares: `throw new AuthenticationError()` instead of `res.status(401).json(...)`.
+
+### Winston Logging
+
+- **Log levels:** `error`, `warn`, `info`, `http`, `debug` (controlled by `LOG_LEVEL`).
+- **Transports:**
+  - Console (dev): colorized, human-readable.
+  - Files: `error.log` (errors), `combined.log` (all), `http.log` (HTTP).
+- **Format:** JSON with timestamp and stack (for errors in files). Console uses succinct colored output.
+- **Rotation:** 5MB per file, keep 5–10 rotated files.
+- **Morgan:** In production, `morgan('combined', { stream })` writes to `http.log` and `combined.log`.
+
+### Standard Error Response
+
+```json
+{
+  "success": false,
+  "message": "User not found",
+  "code": "NOT_FOUND",
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "path": "/api/v1/users/123",
+  "method": "GET",
+  "stack": "Error: User not found..." // shown only in non-production
+}
+```
+
+Validation example:
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "code": "VALIDATION_ERROR",
+  "errors": [
+    { "field": "email", "message": "Valid email is required" },
+    { "field": "password", "message": "Password must be at least 8 characters" }
+  ],
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "path": "/api/v1/auth/register",
+  "method": "POST"
+}
+```
+
+### Logging Best Practices
+
+- **Use levels:**
+  - error: 500s, exceptions, critical failures
+  - warn: expected errors (404, validation), deprecations
+  - info: startup, key business events
+  - http: request logs (via Morgan)
+  - debug: verbose dev-only details
+- **Log context:** method, path, status, userId, ip, duration.
+- **Avoid logging secrets:** passwords, tokens, PII.
+
+### Log Files
+
+- `logs/error.log` — Error-level entries
+- `logs/combined.log` — All levels (info+)
+- `logs/http.log` — HTTP access logs
+- Rotated files: `*.log.1`, `*.log.2`, etc.
+
+### Environment
+
+See `.env.example` for logging variables:
+
+- `LOG_LEVEL`, `LOG_DIR`, `LOG_MAX_SIZE`, `LOG_MAX_FILES`, `ENABLE_FILE_LOGGING`.
+
+### Development Guide
+
+- Throw custom errors from controllers/services/middlewares.
+- Let the centralized error handler build responses and log.
+- Use `logger.info/warn/error/http` instead of `console.*`.

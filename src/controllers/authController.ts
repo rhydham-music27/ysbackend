@@ -4,6 +4,7 @@ import User, { IUser } from '../models/User';
 import { generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { OAuthProvider, UserRole, FileCategory } from '../types/enums';
 import { uploadToCloudinary, deleteFromCloudinary, extractPublicIdFromUrl } from '../utils/fileUpload';
+import { ConflictError, AuthenticationError, NotFoundError, BadRequestError } from '../utils/errors';
 
 export async function register(req: Request, res: Response, next: NextFunction) {
   try {
@@ -16,7 +17,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
 
     const existing = await User.findOne({ email });
     if (existing) {
-      return res.status(409).json({ success: false, message: 'User with this email already exists' });
+      throw new ConflictError('User with this email already exists');
     }
 
     const user = new User({
@@ -55,16 +56,16 @@ export async function login(req: Request, res: Response, next: NextFunction) {
 
     const user = await (User as any).findByEmail(email);
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+      throw new AuthenticationError('Invalid email or password');
     }
 
     if (!user.isActive) {
-      return res.status(403).json({ success: false, message: 'Account is deactivated. Contact administrator.' });
+      throw new AuthenticationError('Account is deactivated. Contact administrator.');
     }
 
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Invalid email or password' });
+      throw new AuthenticationError('Invalid email or password');
     }
 
     const { accessToken, refreshToken } = generateTokenPair(user);
@@ -86,7 +87,7 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
   try {
     const user = req.user as IUser | undefined;
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Not authenticated' });
+      throw new AuthenticationError('Not authenticated');
     }
 
     user.refreshToken = undefined;
@@ -104,16 +105,16 @@ export async function refreshToken(req: Request, res: Response, next: NextFuncti
 
     const decoded = verifyRefreshToken(providedRefreshToken);
     if (!decoded) {
-      return res.status(401).json({ success: false, message: 'Invalid or expired refresh token' });
+      throw new AuthenticationError('Invalid or expired refresh token');
     }
 
     const user = await User.findById(decoded.userId).select('+refreshToken');
     if (!user || !user.isActive) {
-      return res.status(401).json({ success: false, message: 'User not found or account deactivated' });
+      throw new AuthenticationError('User not found or account deactivated');
     }
 
     if (!user.refreshToken || user.refreshToken !== providedRefreshToken) {
-      return res.status(401).json({ success: false, message: 'Invalid refresh token. Please login again.' });
+      throw new AuthenticationError('Invalid refresh token. Please login again.');
     }
 
     const { accessToken, refreshToken: newRefreshToken } = generateTokenPair(user as IUser);
@@ -195,7 +196,7 @@ export async function uploadProfileAvatar(req: Request, res: Response, next: Nex
 
     const file = req.file;
     if (!file) {
-      return res.status(400).json({ success: false, message: 'No file uploaded' });
+      throw new BadRequestError('No file uploaded');
     }
 
     // If user already has avatar, delete old avatar from Cloudinary
@@ -213,11 +214,7 @@ export async function uploadProfileAvatar(req: Request, res: Response, next: Nex
     });
 
     if (!uploadResult.success || !uploadResult.url) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to upload avatar',
-        error: uploadResult.error,
-      });
+      throw new NotFoundError('Cloudinary', 'Failed to upload avatar');
     }
 
     // Update user profile
@@ -242,7 +239,7 @@ export async function deleteProfileAvatar(req: Request, res: Response, next: Nex
     }
 
     if (!user.profile.avatar) {
-      return res.status(400).json({ success: false, message: 'No avatar to delete' });
+      throw new BadRequestError('No avatar to delete');
     }
 
     // Extract public ID and delete from Cloudinary

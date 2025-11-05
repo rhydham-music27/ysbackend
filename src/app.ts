@@ -22,6 +22,8 @@ import passport from 'passport';
 import { initializePassport } from './config/passport';
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './config/swagger';
+import logger, { stream as morganStream } from './config/logger';
+import errorHandler, { notFoundHandler } from './middlewares/errorHandler';
 
 dotenv.config();
 
@@ -43,9 +45,11 @@ app.use(
   })
 );
 
-// HTTP request logger (development only)
+// HTTP request logger
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
+} else {
+  app.use(morgan('combined', { stream: morganStream as any }));
 }
 
 // Body parsers
@@ -94,31 +98,10 @@ app.use(`/api/${apiVersion}/coordinator`, coordinatorRoutes);
 app.use(`/api/${apiVersion}/student`, studentRoutes);
 
 // 404 handler
-app.use((req: Request, res: Response) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
-});
+app.use(notFoundHandler);
 
 // Error handling middleware
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  const statusCode = err.statusCode || 500;
-  const response: Record<string, unknown> = {
-    success: false,
-    message: err.message || 'Internal Server Error',
-  };
-
-  if (process.env.NODE_ENV !== 'production') {
-    response.stack = err.stack;
-  }
-
-  if (process.env.NODE_ENV !== 'production') {
-    // Basic logging in development
-    // eslint-disable-next-line no-console
-    console.error(err);
-  }
-
-  res.status(statusCode).json(response);
-});
+app.use(errorHandler);
 
 export default app;
 
