@@ -66,7 +66,7 @@ export async function sendNotificationEmail(params: SendNotificationEmailParams)
       return { success: false, error: 'Email not verified' };
     }
 
-    const template = EMAIL_TEMPLATES[params.category as keyof typeof EMAIL_TEMPLATES];
+    const template = EMAIL_TEMPLATES[params.category as unknown as keyof typeof EMAIL_TEMPLATES];
     if (!template) {
       throw new Error(`No email template found for category: ${params.category}`);
     }
@@ -90,7 +90,7 @@ export function buildEmailTemplate(
   data: Record<string, any>,
   userName: string
 ): { subject: string; html: string; text: string } {
-  const template = EMAIL_TEMPLATES[category as keyof typeof EMAIL_TEMPLATES];
+  const template = EMAIL_TEMPLATES[category as unknown as keyof typeof EMAIL_TEMPLATES];
   const subject = template?.subject || 'Notification from Your Shikshak';
 
   let htmlContent = '';

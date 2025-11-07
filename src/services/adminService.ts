@@ -109,10 +109,10 @@ export async function createUserByAdmin(params: CreateUserParams): Promise<IUser
       action: AuditAction.USER_CREATED,
       performedBy: params.createdBy,
       targetResource: 'User',
-      targetResourceId: user._id.toString(),
+      targetResourceId: String((user as any)._id),
       description: `Created user ${user.email} with role ${user.role}`,
       metadata: {
-        targetUserId: user._id.toString(),
+        targetUserId: String((user as any)._id),
         targetUserEmail: user.email,
         newValue: { role: user.role, isActive: user.isActive },
       },
@@ -582,7 +582,7 @@ export async function updateSystemSetting(key: string, value: any, updatedBy: st
       action: AuditAction.SETTINGS_UPDATED,
       performedBy: updatedBy,
       targetResource: 'SystemSettings',
-      targetResourceId: setting._id.toString(),
+      targetResourceId: String((setting as any)._id),
       description: `Updated setting ${key}`,
       metadata: {
         oldValue,

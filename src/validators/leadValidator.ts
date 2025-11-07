@@ -40,7 +40,7 @@ export const leadIdParamValidation: ValidationChain[] = [
 export function handleLeadValidationErrors(req: Request, res: Response, next: NextFunction) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    const formatted = errors.array().map((err) => ({ field: err.param, message: err.msg }));
+    const formatted = errors.array().map((err) => ({ field: (err as any).path ?? (err as any).param, message: err.msg }));
     return res.status(400).json({ success: false, errors: formatted });
   }
   return next();

@@ -87,7 +87,7 @@ export async function getStudentDashboard(studentId: string): Promise<StudentDas
       .sort({ createdAt: -1 });
 
     const formattedCourses = enrolledCourses.map((course) => ({
-      courseId: course._id.toString(),
+      courseId: String((course as any)._id),
       courseName: course.name,
       teacherName: `${(course.teacher as any)?.profile?.firstName || ''} ${(course.teacher as any)?.profile?.lastName || ''}`.trim(),
       enrollmentDate: course.createdAt,
@@ -176,11 +176,11 @@ export async function getStudentDashboard(studentId: string): Promise<StudentDas
       .limit(10);
 
     const formattedGrades = recentGrades.map((grade) => ({
-      gradeId: grade._id.toString(),
+      gradeId: String((grade as any)._id),
       courseName: (grade.course as any)?.name || 'Unknown Course',
       score: grade.score,
       maxScore: grade.maxScore,
-      letterGrade: grade.letterGrade,
+      letterGrade: String((grade as any).letterGrade || ''),
       gradedAt: grade.gradedAt || grade.createdAt,
     }));
 
@@ -201,7 +201,7 @@ export async function getStudentDashboard(studentId: string): Promise<StudentDas
       .limit(10);
 
     const formattedClasses = upcomingClasses.map((classDoc) => ({
-      classId: classDoc._id.toString(),
+      classId: String((classDoc as any)._id),
       title: classDoc.title,
       courseName: (classDoc.course as any)?.name || 'Unknown Course',
       scheduledDate: classDoc.scheduledDate,
@@ -213,7 +213,8 @@ export async function getStudentDashboard(studentId: string): Promise<StudentDas
     const unreadCount = await Notification.getUnreadCount(studentId);
 
     // Get recent notifications using static method
-    const recentNotifications = await Notification.findUnreadByUser(studentId).limit(5);
+    const recentNotificationsAll = await Notification.findUnreadByUser(studentId);
+    const recentNotifications = recentNotificationsAll.slice(0, 5);
 
     // Build and return StudentDashboardData object
     return {
@@ -231,8 +232,8 @@ export async function getStudentDashboard(studentId: string): Promise<StudentDas
       upcomingClasses: formattedClasses,
       notifications: {
         unreadCount,
-        recentNotifications: recentNotifications.map((n) => ({
-          id: n._id.toString(),
+        recentNotifications: recentNotifications.map((n: any) => ({
+          id: String(n._id),
           title: n.title,
           message: n.message,
           category: n.category,
@@ -392,7 +393,7 @@ export async function getStudentProgress(
     const assignmentsWithStatus = assignments.map((assignment) => {
       const submission = assignment.getSubmission(studentId);
       return {
-        assignmentId: assignment._id.toString(),
+        assignmentId: String((assignment as any)._id),
         title: assignment.title,
         dueDate: assignment.dueDate,
         status: assignment.status,
@@ -412,10 +413,10 @@ export async function getStudentProgress(
     }).sort({ gradedAt: -1 });
 
     const formattedGrades = grades.map((grade) => ({
-      gradeId: grade._id.toString(),
+      gradeId: String((grade as any)._id),
       score: grade.score,
       maxScore: grade.maxScore,
-      letterGrade: grade.letterGrade,
+      letterGrade: String((grade as any).letterGrade || ''),
       gradeType: grade.gradeType,
       gradedAt: grade.gradedAt || grade.createdAt,
       feedback: grade.feedback,
@@ -471,7 +472,7 @@ export async function getStudentProgress(
 
     return {
       course: {
-        courseId: course._id.toString(),
+        courseId: String((course as any)._id),
         courseName: course.name,
         teacherName: `${(course.teacher as any)?.profile?.firstName || ''} ${(course.teacher as any)?.profile?.lastName || ''}`.trim(),
         description: course.description,

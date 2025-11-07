@@ -24,8 +24,9 @@ export const coordinatorQueryValidation: ValidationChain[] = [
   query('endDate')
     .optional()
     .custom((value, { req }) => {
-      if (req.query.startDate && value) {
-        const start = new Date(req.query.startDate as string);
+      const q = req.query as any;
+      if (q?.startDate && value) {
+        const start = new Date(q.startDate as string);
         const end = new Date(value);
         if (end < start) {
           throw new Error('End date must be after start date');
@@ -38,7 +39,7 @@ export const coordinatorQueryValidation: ValidationChain[] = [
 export function handleCoordinatorValidationErrors(req: Request, res: Response, next: NextFunction) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    const formatted = errors.array().map((err) => ({ field: err.param, message: err.msg }));
+    const formatted = errors.array().map((err) => ({ field: (err as any).path ?? (err as any).param, message: err.msg }));
     return res.status(400).json({ success: false, errors: formatted });
   }
   next();
