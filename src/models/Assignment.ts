@@ -21,6 +21,7 @@ export interface IAssignment extends Document {
   description: string;
   course: mongoose.Types.ObjectId;
   teacher: mongoose.Types.ObjectId;
+  createdBy?: mongoose.Types.ObjectId;
   dueDate: Date;
   publishDate?: Date;
   maxGrade: number;
@@ -81,6 +82,7 @@ const AssignmentSchema = new Schema<IAssignment, IAssignmentModel>(
     description: { type: String, required: true, trim: true, minlength: 10 },
     course: { type: Schema.Types.ObjectId, ref: 'Course', required: true, index: true },
     teacher: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
     dueDate: { type: Date, required: true, index: true },
     publishDate: { type: Date },
     maxGrade: { type: Number, required: true, default: 100, min: 0 },

@@ -248,10 +248,12 @@ export async function deleteSchedule(scheduleId: string, deletedBy: string): Pro
 export async function getSchedulesByTeacher(teacherId: string): Promise<ISchedule[]> {
   try {
     if (!mongoose.Types.ObjectId.isValid(teacherId)) throw new Error('Invalid teacher ID');
-    const schedules = await Schedule.findByTeacher(teacherId)
-      .populate('course', 'name code')
-      .populate('class', 'title');
-    return schedules;
+    const schedules = await Schedule.findByTeacher(teacherId);
+    await Schedule.populate(schedules as any, [
+      { path: 'course', select: 'name code' },
+      { path: 'class', select: 'title' },
+    ]);
+    return schedules as unknown as ISchedule[];
   } catch (err) {
     throw err;
   }
@@ -260,10 +262,12 @@ export async function getSchedulesByTeacher(teacherId: string): Promise<ISchedul
 export async function getSchedulesByCourse(courseId: string): Promise<ISchedule[]> {
   try {
     if (!mongoose.Types.ObjectId.isValid(courseId)) throw new Error('Invalid course ID');
-    const schedules = await Schedule.findByCourse(courseId)
-      .populate('teacher', 'profile.firstName profile.lastName email')
-      .populate('class', 'title');
-    return schedules;
+    const schedules = await Schedule.findByCourse(courseId);
+    await Schedule.populate(schedules as any, [
+      { path: 'teacher', select: 'profile.firstName profile.lastName email' },
+      { path: 'class', select: 'title' },
+    ]);
+    return schedules as unknown as ISchedule[];
   } catch (err) {
     throw err;
   }
@@ -274,10 +278,12 @@ export async function getSchedulesByDay(day: DayOfWeek, room?: string): Promise<
     const query = room
       ? Schedule.findByDayAndRoom(day, room)
       : Schedule.find({ dayOfWeek: day, isActive: true }).sort({ startTime: 1 });
-    const schedules = await query
-      .populate('teacher', 'profile.firstName profile.lastName email')
-      .populate('course', 'name code')
-      .populate('class', 'title');
+    const schedules = await query;
+    await Schedule.populate(schedules as any, [
+      { path: 'teacher', select: 'profile.firstName profile.lastName email' },
+      { path: 'course', select: 'name code' },
+      { path: 'class', select: 'title' },
+    ]);
     return schedules as unknown as ISchedule[];
   } catch (err) {
     throw err;

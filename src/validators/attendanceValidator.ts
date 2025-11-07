@@ -67,8 +67,9 @@ export const attendanceQueryValidation: ValidationChain[] = [
     .toDate()
     .withMessage('Invalid end date format')
     .custom((value, { req }) => {
-      if (req.query.startDate && value) {
-        const start = new Date(req.query.startDate as string);
+      const q: any = req.query || {};
+      if (q.startDate && value) {
+        const start = new Date(q.startDate as string);
         const end = new Date(value as string);
         if (end < start) throw new Error('End date must be after start date');
       }
@@ -80,7 +81,7 @@ export const attendanceQueryValidation: ValidationChain[] = [
 export function handleAttendanceValidationErrors(req: Request, res: Response, next: NextFunction) {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    const formatted = errors.array().map((err) => ({ field: err.param, message: err.msg }));
+    const formatted = errors.array().map((err) => ({ field: (err as any).path ?? (err as any).param, message: err.msg }));
     return res.status(400).json({ success: false, errors: formatted });
   }
   return next();

@@ -236,8 +236,6 @@ ScheduleSchema.statics.checkRoomConflict = async function (
 };
 
 const Schedule = mongoose.model<ISchedule, IScheduleModel>('Schedule', ScheduleSchema);
-
-export { ISchedule };
 export default Schedule;
 
 
