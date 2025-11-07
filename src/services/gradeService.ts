@@ -122,13 +122,14 @@ export async function addGrade(params: AddGradeParams): Promise<IGrade> {
       notes,
     } as any);
 
-    const populated = await created
-      .populate('student', 'profile.firstName profile.lastName email')
-      .populate('course', 'name code')
-      .populate('assignment', 'title')
-      .populate('gradedBy', 'profile.firstName profile.lastName');
+    await Grade.populate(created as any, [
+      { path: 'student', select: 'profile.firstName profile.lastName email' },
+      { path: 'course', select: 'name code' },
+      { path: 'assignment', select: 'title' },
+      { path: 'gradedBy', select: 'profile.firstName profile.lastName' },
+    ]);
 
-    return populated as unknown as IGrade;
+    return created as unknown as IGrade;
   } catch (err) {
     throw err;
   }
@@ -160,12 +161,13 @@ export async function updateGrade(params: UpdateGradeParams): Promise<IGrade> {
     if (typeof notes === 'string') update.notes = notes;
 
     const updated = await Grade.findByIdAndUpdate(gradeId, update, { new: true, runValidators: true });
-    const populated = await updated!
-      .populate('student', 'profile.firstName profile.lastName email')
-      .populate('course', 'name code')
-      .populate('assignment', 'title')
-      .populate('gradedBy', 'profile.firstName profile.lastName');
-    return populated as unknown as IGrade;
+    await Grade.populate(updated as any, [
+      { path: 'student', select: 'profile.firstName profile.lastName email' },
+      { path: 'course', select: 'name code' },
+      { path: 'assignment', select: 'title' },
+      { path: 'gradedBy', select: 'profile.firstName profile.lastName' },
+    ]);
+    return updated as unknown as IGrade;
   } catch (err) {
     throw err;
   }
@@ -231,13 +233,14 @@ export async function syncAssignmentGrade(params: SyncAssignmentGradeParams): Pr
     }
 
     if (!result) return null;
-    const populated = await (result as any)
-      .populate('student', 'profile.firstName profile.lastName email')
-      .populate('course', 'name code')
-      .populate('assignment', 'title')
-      .populate('gradedBy', 'profile.firstName profile.lastName');
+    await Grade.populate(result as any, [
+      { path: 'student', select: 'profile.firstName profile.lastName email' },
+      { path: 'course', select: 'name code' },
+      { path: 'assignment', select: 'title' },
+      { path: 'gradedBy', select: 'profile.firstName profile.lastName' },
+    ]);
 
-    return populated as IGrade;
+    return result as IGrade;
   } catch (err) {
     throw err;
   }

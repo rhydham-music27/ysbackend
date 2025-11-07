@@ -148,11 +148,14 @@ export async function approveSchedule(params: ApproveScheduleParams): Promise<IS
 
 export async function getPendingCourseApprovals(): Promise<ICourse[]> {
   try {
-    const courses = await Course.findPendingApproval()
-      .populate('teacher', 'profile.firstName profile.lastName email')
-      .populate('createdBy', 'profile.firstName profile.lastName')
-      .sort({ createdAt: 1 });
-    return courses;
+    const courses = await Course.findPendingApproval();
+    await Course.populate(courses as any, [
+      { path: 'teacher', select: 'profile.firstName profile.lastName email' },
+      { path: 'createdBy', select: 'profile.firstName profile.lastName' },
+    ]);
+    // sort by createdAt ascending
+    (courses as any).sort?.((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return courses as unknown as ICourse[];
   } catch (error) {
     throw error;
   }
@@ -160,12 +163,14 @@ export async function getPendingCourseApprovals(): Promise<ICourse[]> {
 
 export async function getPendingScheduleApprovals(): Promise<ISchedule[]> {
   try {
-    const schedules = await Schedule.findPendingApproval()
-      .populate('teacher', 'profile.firstName profile.lastName email')
-      .populate('course', 'name code')
-      .populate('createdBy', 'profile.firstName profile.lastName')
-      .sort({ createdAt: 1 });
-    return schedules;
+    const schedules = await Schedule.findPendingApproval();
+    await Schedule.populate(schedules as any, [
+      { path: 'teacher', select: 'profile.firstName profile.lastName email' },
+      { path: 'course', select: 'name code' },
+      { path: 'createdBy', select: 'profile.firstName profile.lastName' },
+    ]);
+    (schedules as any).sort?.((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return schedules as unknown as ISchedule[];
   } catch (error) {
     throw error;
   }
@@ -246,7 +251,7 @@ export async function getAllTeachersPerformance(): Promise<TeacherPerformanceMet
 
     for (const teacher of teachers) {
       try {
-        const metrics = await getTeacherPerformanceMetrics(teacher._id.toString());
+        const metrics = await getTeacherPerformanceMetrics(String((teacher as any)._id));
         performanceList.push(metrics);
       } catch (error) {
         // Skip teachers with errors, continue with others
@@ -293,7 +298,7 @@ export async function getManagerDashboard(): Promise<ManagerDashboardData> {
       if (course.approvalDate) {
         recentApprovals.push({
           type: 'course',
-          id: course._id.toString(),
+          id: String((course as any)._id),
           title: course.name,
           approvedAt: course.approvalDate,
         });
@@ -305,7 +310,7 @@ export async function getManagerDashboard(): Promise<ManagerDashboardData> {
         const courseName = (schedule.course as any).name || 'Schedule';
         recentApprovals.push({
           type: 'schedule',
-          id: schedule._id.toString(),
+          id: String((schedule as any)._id),
           title: courseName,
           approvedAt: schedule.approvalDate,
         });

@@ -93,12 +93,13 @@ export async function markAttendance(params: MarkAttendanceParams): Promise<IAtt
       notes,
     });
 
-    const populated = await created
-      .populate('class')
-      .populate('student', 'profile.firstName profile.lastName email')
-      .populate('markedBy', 'profile.firstName profile.lastName');
+    await Attendance.populate(created as any, [
+      { path: 'class' },
+      { path: 'student', select: 'profile.firstName profile.lastName email' },
+      { path: 'markedBy', select: 'profile.firstName profile.lastName' },
+    ]);
 
-    return populated as unknown as IAttendance;
+    return created as unknown as IAttendance;
   } catch (error) {
     throw error;
   }
