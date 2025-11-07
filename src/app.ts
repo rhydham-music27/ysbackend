@@ -12,8 +12,21 @@ import attendanceRoutes from './routes/attendanceRoutes';
 import assignmentRoutes from './routes/assignmentRoutes';
 import gradeRoutes from './routes/gradeRoutes';
 import scheduleRoutes from './routes/scheduleRoutes';
+import notificationRoutes from './routes/notificationRoutes';
+import reportRoutes from './routes/reportRoutes';
+import tutorLeadRoutes from './routes/tutorLeadRoutes';
+import tutorLeadAuthRoutes from './routes/tutorLeadAuthRoutes';
+import tutorLeadDocumentRoutes from './routes/tutorLeadDocumentRoutes';
+import adminRoutes from './routes/adminRoutes';
+import managerRoutes from './routes/managerRoutes';
+import coordinatorRoutes from './routes/coordinatorRoutes';
+import studentRoutes from './routes/studentRoutes';
 import passport from 'passport';
 import { initializePassport } from './config/passport';
+import swaggerUi from 'swagger-ui-express';
+import swaggerSpec from './config/swagger';
+import logger, { stream as morganStream } from './config/logger';
+import errorHandler, { notFoundHandler } from './middlewares/errorHandler';
 
 dotenv.config();
 
@@ -23,21 +36,35 @@ const app = express();
 app.use(helmet());
 
 // CORS configuration
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:8080')
   .split(',')
   .map((origin) => origin.trim());
 
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  })
-);
+const corsOptions: cors.CorsOptions =
+  process.env.NODE_ENV === 'production'
+    ? {
+        origin: allowedOrigins,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        optionsSuccessStatus: 204,
+      }
+    : {
+        origin: (_origin, cb) => cb(null, true), // allow all origins in dev
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        optionsSuccessStatus: 204,
+      };
 
-// HTTP request logger (development only)
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+
+// HTTP request logger
 if (process.env.NODE_ENV !== 'production') {
   app.use(morgan('dev'));
+} else {
+  app.use(morgan('combined', { stream: morganStream as any }));
 }
 
 // Body parsers
@@ -58,6 +85,16 @@ app.get(`/api/${apiVersion}/health`, (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', version: apiVersion, timestamp: new Date() });
 });
 
+// Swagger API Documentation
+// Access at: http://localhost:5000/api-docs
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, { explorer: true }));
+
+// Serve OpenAPI JSON spec
+app.get('/api-docs.json', (_req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 // Import routes here (authRoutes, courseRoutes, etc.)
 app.use(`/api/${apiVersion}/auth`, authRoutes);
 app.use(`/api/${apiVersion}/classes`, finalClassRoutes);
@@ -68,34 +105,21 @@ app.use(`/api/${apiVersion}/attendance`, attendanceRoutes);
 app.use(`/api/${apiVersion}/assignments`, assignmentRoutes);
 app.use(`/api/${apiVersion}/grades`, gradeRoutes);
 app.use(`/api/${apiVersion}/schedules`, scheduleRoutes);
-// Future routes: notifications, reports, etc.
+app.use(`/api/${apiVersion}/notifications`, notificationRoutes);
+app.use(`/api/${apiVersion}/reports`, reportRoutes);
+app.use(`/api/${apiVersion}/admin`, adminRoutes);
+app.use(`/api/${apiVersion}/manager`, managerRoutes);
+app.use(`/api/${apiVersion}/coordinator`, coordinatorRoutes);
+app.use(`/api/${apiVersion}/student`, studentRoutes);
+app.use(`/api/${apiVersion}/tutor-leads`, tutorLeadRoutes);
+app.use(`/api/${apiVersion}/tutor-lead-auth`, tutorLeadAuthRoutes);
+app.use(`/api/${apiVersion}/tutor-lead-docs`, tutorLeadDocumentRoutes);
 
 // 404 handler
-app.use((req: Request, res: Response) => {
-  res.status(404).json({ success: false, message: 'Route not found' });
-});
+app.use(notFoundHandler);
 
 // Error handling middleware
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-  const statusCode = err.statusCode || 500;
-  const response: Record<string, unknown> = {
-    success: false,
-    message: err.message || 'Internal Server Error',
-  };
-
-  if (process.env.NODE_ENV !== 'production') {
-    response.stack = err.stack;
-  }
-
-  if (process.env.NODE_ENV !== 'production') {
-    // Basic logging in development
-    // eslint-disable-next-line no-console
-    console.error(err);
-  }
-
-  res.status(statusCode).json(response);
-});
+app.use(errorHandler);
 
 export default app;
 

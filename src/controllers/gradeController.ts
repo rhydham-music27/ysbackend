@@ -11,6 +11,8 @@ import {
   calculateStudentGPA,
   getGradeStatistics,
 } from '../services/gradeService';
+import { notifyGradePosted } from '../services/notificationService';
+import Course from '../models/Course';
 
 export async function addGradeController(req: Request, res: Response, next: NextFunction) {
   try {
@@ -29,6 +31,22 @@ export async function addGradeController(req: Request, res: Response, next: Next
       isPublished,
       notes,
     });
+    
+    // Trigger notification after successful grade creation (only if published)
+    if (grade.isPublished !== false) {
+      await grade.populate('course', 'name');
+      const courseName = (grade.course as any)?.name || 'Course';
+      const letterGrade = (grade as any).letterGrade || '';
+      notifyGradePosted(
+        grade.student.toString(),
+        grade._id.toString(),
+        courseName,
+        grade.score,
+        grade.maxScore,
+        letterGrade
+      ).catch((err) => console.error('Notification error:', err));
+    }
+    
     res.status(201).json({ success: true, message: 'Grade added successfully', data: { grade } });
   } catch (err) {
     next(err);

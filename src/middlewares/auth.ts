@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { verifyAccessToken } from '../utils/jwt';
 import User, { IUser } from '../models/User';
+import { AuthenticationError } from '../utils/errors';
 
 export function extractTokenFromHeader(authHeader?: string): string | null {
   if (!authHeader) return null;
@@ -17,23 +18,23 @@ async function authenticate(req: Request, res: Response, next: NextFunction) {
     const token = headerToken || cookieToken || null;
 
     if (!token) {
-      return res.status(401).json({ success: false, message: 'Authentication required. No token provided.' });
+      throw new AuthenticationError('Authentication required. No token provided.');
     }
 
     const decoded = verifyAccessToken(token);
     if (!decoded) {
-      return res.status(401).json({ success: false, message: 'Invalid or expired token' });
+      throw new AuthenticationError('Invalid or expired token');
     }
 
     const user = await User.findById(decoded.userId);
     if (!user || !user.isActive) {
-      return res.status(401).json({ success: false, message: 'User not found or account deactivated' });
+      throw new AuthenticationError('User not found or account deactivated');
     }
 
     req.user = user as IUser;
     return next();
   } catch (err) {
-    return res.status(500).json({ success: false, message: 'Failed to authenticate request' });
+    return next(err);
   }
 }
 

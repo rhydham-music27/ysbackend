@@ -32,25 +32,88 @@ import {
 const router = Router();
 
 /**
- * @route   GET /api/v1/schedules/my
- * @desc    Get teaching schedule for current teacher
- * @access  Private (Teacher)
+ * @swagger
+ * /api/v1/schedules/my:
+ *   get:
+ *     summary: Get teaching schedule for current teacher
+ *     tags: [Schedules]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Teacher's schedule
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Teacher only
  */
 router.get('/my', authenticate, authorize(UserRole.TEACHER), getMySchedule);
 
 /**
- * @route   GET /api/v1/schedules/weekly
- * @desc    Get weekly timetable grouped by day
- * @access  Private (All authenticated users)
- * @query   { teacher?, course?, room? }
+ * @swagger
+ * /api/v1/schedules/weekly:
+ *   get:
+ *     summary: Get weekly timetable grouped by day
+ *     tags: [Schedules]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: teacher
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: course
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: room
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Weekly timetable
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/weekly', authenticate, scheduleQueryValidation, handleScheduleValidationErrors, getWeeklyTimetable);
 
 /**
- * @route   POST /api/v1/schedules/check-conflicts
- * @desc    Check for scheduling conflicts (teacher/room)
- * @access  Private (Admin, Manager, Coordinator)
- * @body    { teacher, dayOfWeek, startTime, endTime, room?, excludeId? }
+ * @swagger
+ * /api/v1/schedules/check-conflicts:
+ *   post:
+ *     summary: Check for scheduling conflicts (teacher/room)
+ *     tags: [Schedules]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [teacher, dayOfWeek, startTime, endTime]
+ *             properties:
+ *               teacher:
+ *                 type: string
+ *               dayOfWeek:
+ *                 type: string
+ *                 enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+ *               startTime:
+ *                 type: string
+ *               endTime:
+ *                 type: string
+ *               room:
+ *                 type: string
+ *               excludeId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Conflict check results
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Admin, Manager, or Coordinator role
  */
 router.post(
   '/check-conflicts',
@@ -62,9 +125,28 @@ router.post(
 );
 
 /**
- * @route   GET /api/v1/schedules/teachers/:id
- * @desc    Get all schedules for a specific teacher
- * @access  Private (Teacher, Coordinator, Manager, Admin)
+ * @swagger
+ * /api/v1/schedules/teachers/{id}:
+ *   get:
+ *     summary: Get all schedules for a specific teacher
+ *     tags: [Schedules]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Teacher's schedules
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Teacher, Coordinator, Manager, or Admin role
+ *       404:
+ *         description: Teacher not found
  */
 router.get(
   '/teachers/:id',
@@ -76,9 +158,26 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/schedules/courses/:id
- * @desc    Get all schedules for a specific course
- * @access  Private (All authenticated users)
+ * @swagger
+ * /api/v1/schedules/courses/{id}:
+ *   get:
+ *     summary: Get all schedules for a specific course
+ *     tags: [Schedules]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course schedules
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Course not found
  */
 router.get(
   '/courses/:id',
@@ -89,10 +188,29 @@ router.get(
 );
 
 /**
- * @route   GET /api/v1/schedules/days/:day
- * @desc    Get all schedules for a specific day
- * @access  Private (All authenticated users)
- * @query   { room? }
+ * @swagger
+ * /api/v1/schedules/days/{day}:
+ *   get:
+ *     summary: Get all schedules for a specific day
+ *     tags: [Schedules]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: day
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+ *       - in: query
+ *         name: room
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Day schedules
+ *       401:
+ *         description: Unauthorized
  */
 router.get(
   '/days/:day',
@@ -104,10 +222,58 @@ router.get(
 );
 
 /**
- * @route   POST /api/v1/schedules
- * @desc    Create a new recurring schedule
- * @access  Private (Admin, Manager, Coordinator)
- * @body    { class, course, teacher, dayOfWeek, startTime, endTime, room?, building?, recurrenceType?, effectiveFrom?, effectiveTo?, notes? }
+ * @swagger
+ * /api/v1/schedules:
+ *   post:
+ *     summary: Create a new recurring schedule
+ *     tags: [Schedules]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [class, course, teacher, dayOfWeek, startTime, endTime]
+ *             properties:
+ *               class:
+ *                 type: string
+ *               course:
+ *                 type: string
+ *               teacher:
+ *                 type: string
+ *               dayOfWeek:
+ *                 type: string
+ *                 enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+ *               startTime:
+ *                 type: string
+ *               endTime:
+ *                 type: string
+ *               room:
+ *                 type: string
+ *               building:
+ *                 type: string
+ *               recurrenceType:
+ *                 type: string
+ *                 enum: [weekly, biweekly, custom]
+ *               effectiveFrom:
+ *                 type: string
+ *                 format: date
+ *               effectiveTo:
+ *                 type: string
+ *                 format: date
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Schedule created successfully
+ *       400:
+ *         description: Validation error or conflict detected
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Admin, Manager, or Coordinator role
  */
 router.post(
   '/',
@@ -119,25 +285,120 @@ router.post(
 );
 
 /**
- * @route   GET /api/v1/schedules
- * @desc    List all schedules with optional filters
- * @access  Private (All authenticated users)
- * @query   { course?, teacher?, dayOfWeek?, room?, isActive? }
+ * @swagger
+ * /api/v1/schedules:
+ *   get:
+ *     summary: List all schedules with optional filters
+ *     tags: [Schedules]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: course
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: teacher
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: dayOfWeek
+ *         schema:
+ *           type: string
+ *           enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+ *       - in: query
+ *         name: room
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: List of schedules
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/', authenticate, scheduleQueryValidation, handleScheduleValidationErrors, listSchedules);
 
 /**
- * @route   GET /api/v1/schedules/:id
- * @desc    Get a single schedule by ID
- * @access  Private (All authenticated users)
+ * @swagger
+ * /api/v1/schedules/{id}:
+ *   get:
+ *     summary: Get a single schedule by ID
+ *     tags: [Schedules]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Schedule details
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Schedule not found
  */
 router.get('/:id', authenticate, scheduleIdParamValidation, handleScheduleValidationErrors, getSchedule);
 
 /**
- * @route   PUT /api/v1/schedules/:id
- * @desc    Update a schedule
- * @access  Private (Admin, Manager, Coordinator)
- * @body    { dayOfWeek?, startTime?, endTime?, room?, building?, effectiveFrom?, effectiveTo?, isActive?, notes? }
+ * @swagger
+ * /api/v1/schedules/{id}:
+ *   put:
+ *     summary: Update a schedule
+ *     tags: [Schedules]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               dayOfWeek:
+ *                 type: string
+ *                 enum: [monday, tuesday, wednesday, thursday, friday, saturday, sunday]
+ *               startTime:
+ *                 type: string
+ *               endTime:
+ *                 type: string
+ *               room:
+ *                 type: string
+ *               building:
+ *                 type: string
+ *               effectiveFrom:
+ *                 type: string
+ *                 format: date
+ *               effectiveTo:
+ *                 type: string
+ *                 format: date
+ *               isActive:
+ *                 type: boolean
+ *               notes:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Schedule updated successfully
+ *       400:
+ *         description: Validation error or conflict detected
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Admin, Manager, or Coordinator role
+ *       404:
+ *         description: Schedule not found
  */
 router.put(
   '/:id',
@@ -150,9 +411,28 @@ router.put(
 );
 
 /**
- * @route   DELETE /api/v1/schedules/:id
- * @desc    Delete a schedule (soft delete)
- * @access  Private (Admin, Manager)
+ * @swagger
+ * /api/v1/schedules/{id}:
+ *   delete:
+ *     summary: Delete a schedule (soft delete)
+ *     tags: [Schedules]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Schedule deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin or Manager only
+ *       404:
+ *         description: Schedule not found
  */
 router.delete(
   '/:id',
@@ -164,10 +444,44 @@ router.delete(
 );
 
 /**
- * @route   POST /api/v1/schedules/:id/generate-classes
- * @desc    Generate Class instances from schedule template
- * @access  Private (Admin, Manager, Coordinator)
- * @body    { startDate, endDate }
+ * @swagger
+ * /api/v1/schedules/{id}/generate-classes:
+ *   post:
+ *     summary: Generate Class instances from schedule template
+ *     tags: [Schedules]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [startDate, endDate]
+ *             properties:
+ *               startDate:
+ *                 type: string
+ *                 format: date
+ *               endDate:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: Classes generated successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Admin, Manager, or Coordinator role
+ *       404:
+ *         description: Schedule not found
  */
 router.post(
   '/:id/generate-classes',

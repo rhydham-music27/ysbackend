@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { UserRole } from '../types/enums';
 import { IUser } from '../models/User';
 import { hasMinimumRole, getRoleLevel, hasPermission } from '../config/permissions';
+import { AuthenticationError, AuthorizationError } from '../utils/errors';
 
 export type RoleOrRoles = UserRole | UserRole[];
 
@@ -10,8 +11,10 @@ function shouldLogFailures(): boolean {
   return String(flag).toLowerCase() === 'true';
 }
 
-function sendAuthorizationError(res: Response, message: string, statusCode: number = 403) {
-  return res.status(statusCode).json({ success: false, message, statusCode });
+function sendAuthorizationError(_res: Response, message: string, statusCode: number = 403) {
+  // delegate to centralized error handler via thrown error
+  if (statusCode === 401) throw new AuthenticationError(message);
+  throw new AuthorizationError(message);
 }
 
 function getUserFromRequest(req: Request): IUser | null {

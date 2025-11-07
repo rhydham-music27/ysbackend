@@ -1,5 +1,5 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
-import { CourseStatus } from '../types/enums';
+import { CourseStatus, ApprovalStatus } from '../types/enums';
 
 export interface ICourseSchedule {
   daysOfWeek: string[];
@@ -22,6 +22,11 @@ export interface ICourse extends Document {
   tags: string[];
   prerequisites: string[];
   syllabus?: string;
+  approvalStatus?: ApprovalStatus;
+  approvedBy?: mongoose.Types.ObjectId;
+  approvalDate?: Date;
+  approvalNotes?: string;
+  requiresApproval: boolean;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -33,12 +38,15 @@ export interface ICourse extends Document {
   // instance methods
   canEnroll(): boolean;
   isEnrolled(studentId: string): boolean;
+  isPendingApproval(): boolean;
+  isApproved(): boolean;
 }
 
 export interface ICourseModel extends Model<ICourse> {
   findByTeacher(teacherId: string): Promise<ICourse[]>;
   findByStudent(studentId: string): Promise<ICourse[]>;
   findActiveCourses(): Promise<ICourse[]>;
+  findPendingApproval(): Promise<ICourse[]>;
 }
 
 const CourseScheduleSchema = new Schema<ICourseSchedule>(
@@ -66,6 +74,11 @@ const CourseSchema = new Schema<ICourse, ICourseModel>(
     tags: { type: [String], default: [] },
     prerequisites: { type: [String], default: [] },
     syllabus: { type: String },
+    approvalStatus: { type: String, enum: Object.values(ApprovalStatus), index: true },
+    approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    approvalDate: { type: Date },
+    approvalNotes: { type: String, trim: true, maxlength: 500 },
+    requiresApproval: { type: Boolean, default: false },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }
@@ -75,6 +88,7 @@ const CourseSchema = new Schema<ICourse, ICourseModel>(
 CourseSchema.index({ teacher: 1, status: 1 });
 CourseSchema.index({ students: 1, status: 1 });
 CourseSchema.index({ name: 'text', description: 'text' });
+CourseSchema.index({ approvalStatus: 1, createdAt: -1 });
 
 // Virtuals
 CourseSchema.virtual('enrolledCount').get(function (this: ICourse) {
@@ -97,6 +111,14 @@ CourseSchema.methods.isEnrolled = function (this: ICourse, studentId: string): b
   return this.students.some((id) => id.toString() === studentId);
 };
 
+CourseSchema.methods.isPendingApproval = function (this: ICourse): boolean {
+  return this.approvalStatus === ApprovalStatus.PENDING;
+};
+
+CourseSchema.methods.isApproved = function (this: ICourse): boolean {
+  return this.approvalStatus === ApprovalStatus.APPROVED || this.approvalStatus === ApprovalStatus.AUTO_APPROVED;
+};
+
 // Static methods
 CourseSchema.statics.findByTeacher = function (teacherId: string) {
   return this.find({ teacher: new mongoose.Types.ObjectId(teacherId) });
@@ -108,6 +130,10 @@ CourseSchema.statics.findByStudent = function (studentId: string) {
 
 CourseSchema.statics.findActiveCourses = function () {
   return this.find({ status: CourseStatus.ACTIVE });
+};
+
+CourseSchema.statics.findPendingApproval = function () {
+  return this.find({ approvalStatus: ApprovalStatus.PENDING }).sort({ createdAt: 1 });
 };
 
 const Course = mongoose.model<ICourse, ICourseModel>('Course', CourseSchema);

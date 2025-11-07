@@ -8,7 +8,12 @@ Your Shikshak is an EdTech platform designed to support five user roles: Admin, 
 - Express.js framework
 - MongoDB with Mongoose
 - JWT & OAuth authentication (Passport.js with Google OAuth 2.0)
-- Cloudinary for file storage
+- Cloudinary SDK (v1.41.0) - Cloud storage and CDN
+- Multer (v1.4.5) - Multipart/form-data handling
+- Nodemailer (v6.9.0) - Email delivery service
+- Winston (v3.11.0) - Logging
+- swagger-ui-express (v5.0.0) - Swagger UI middleware
+- swagger-jsdoc (v6.2.8) - OpenAPI spec generator
 
 ### Project Structure (MVC)
 ```
@@ -66,7 +71,97 @@ npm run format
 ```
 
 ### API Documentation
-Swagger/OpenAPI documentation will be added in a future phase.
+
+All route files contain JSDoc comments with `@route`, `@desc`, `@access` tags that Swagger automatically uses to generate documentation. When adding new endpoints:
+
+- Follow the existing JSDoc pattern in route files
+- Keep JSDoc comments concise in route files
+- Detailed schemas are defined in `src/config/swagger.ts` for reusability
+- Run `npm run dev` and visit `/api-docs` to see updated documentation
+- The swagger-jsdoc library scans route files and generates OpenAPI spec automatically
+
+## API Documentation (Swagger/OpenAPI)
+
+The API documentation is available through Swagger UI, providing interactive documentation with request/response schemas, authentication requirements, and 'Try it out' functionality for testing endpoints directly in the browser.
+
+### Accessing Swagger UI
+
+1. Start the development server: `npm run dev`
+2. Open your browser and navigate to: **http://localhost:5000/api-docs**
+3. Swagger UI displays all API endpoints grouped by tags (Authentication, Courses, Assignments, etc.)
+4. Click on any endpoint to see detailed information (parameters, request body, responses)
+5. Click 'Try it out' to test endpoints directly in the browser
+6. For protected endpoints, click the 'Authorize' button and enter your JWT token
+7. Format: `Bearer <your-access-token>` (get token from `/api/v1/auth/login` or `/api/v1/auth/register`)
+8. OpenAPI JSON specification is available at: **http://localhost:5000/api-docs.json**
+
+### Using Swagger for API Testing
+
+1. **Authenticate:**
+   - Navigate to `POST /api/v1/auth/register` or `POST /api/v1/auth/login`
+   - Click 'Try it out'
+   - Enter request body (email, password, profile)
+   - Click 'Execute'
+   - Copy `accessToken` from the response
+
+2. **Authorize:**
+   - Click the 'Authorize' button at the top of Swagger UI
+   - Enter: `Bearer <copied-access-token>`
+   - Click 'Authorize' and then 'Close'
+   - All subsequent requests will automatically include this token
+
+3. **Test Endpoints:**
+   - Navigate to any protected endpoint
+   - Click 'Try it out'
+   - Fill in required parameters and request body
+   - Click 'Execute'
+   - View response with status code, headers, and body
+
+4. **Test Different Roles:**
+   - Register/login as different roles (admin, manager, teacher, coordinator, student)
+   - Test role-specific endpoints to verify RBAC enforcement
+   - Observe 403 Forbidden responses for unauthorized access
+
+### API Endpoint Groups
+
+The Swagger UI organizes endpoints into the following groups:
+
+- **Authentication:** Register, login, logout, OAuth, profile management
+- **Courses:** Course CRUD, enrollment, capacity checks
+- **Classes:** Class session CRUD, student management
+- **Assignments:** Assignment CRUD, submission, grading
+- **Grades:** Grade CRUD, GPA calculation, statistics
+- **Attendance:** Attendance marking, viewing, statistics
+- **Schedules:** Schedule CRUD, conflict detection, weekly timetable
+- **Notifications:** Notification CRUD, read/unread management
+- **Reports:** Student performance, teacher workload, enrollment trends, attendance statistics
+- **Admin:** User management, bulk operations, system settings, audit logs
+- **Manager:** Approval workflows, teacher oversight, manager dashboard
+- **Coordinator:** Class coordination, attendance monitoring, student communication
+- **Student:** Student dashboard, course enrollment/drop, progress tracking
+- **Leads:** Lead management (business-specific)
+- **FinalClass:** Final class management (business-specific)
+
+### OpenAPI Specification
+
+- **Version:** OpenAPI 3.0.0
+- **Format:** JSON (auto-generated from JSDoc comments)
+- **Location:** http://localhost:5000/api-docs.json
+- **Generation:** swagger-jsdoc scans route files for JSDoc comments
+- **Schemas:** Reusable component schemas defined in `src/config/swagger.ts`
+- **Security:** JWT Bearer token authentication documented
+- **Tags:** Endpoints grouped by functional area
+- **Examples:** Request and response examples for all endpoints
+
+### External Tools Integration
+
+The OpenAPI specification can be used with external tools:
+
+- **Postman:** Import OpenAPI spec from http://localhost:5000/api-docs.json
+- **Insomnia:** Import OpenAPI spec for API testing
+- **Code Generators:** Use OpenAPI spec to generate client SDKs (TypeScript, Python, Java)
+- **API Testing:** Use spec for automated API testing frameworks
+- **Frontend Integration:** Generate TypeScript types from OpenAPI spec
 
 ## Authentication
 
@@ -135,11 +230,17 @@ router.post('/attendance', authenticate, authorize(UserRole.TEACHER, UserRole.CO
 
 ## API Endpoints
 
+### Authentication
 - POST `/api/v1/auth/register` — Register new user
 - POST `/api/v1/auth/login` — User login
 - POST `/api/v1/auth/logout` — User logout (protected)
 - POST `/api/v1/auth/refresh` — Refresh access token
 - GET `/api/v1/auth/me` — Get current user (protected)
+
+### Profile Management
+- PUT `/api/v1/auth/profile` — Update profile text fields (All authenticated)
+- POST `/api/v1/auth/profile/avatar` — Upload profile avatar (All authenticated)
+- DELETE `/api/v1/auth/profile/avatar` — Delete profile avatar (All authenticated)
 
 #### OAuth Endpoints
 - GET `/api/v1/auth/google` — Initiate Google OAuth flow
@@ -183,6 +284,24 @@ Notes:
 - GET `/api/v1/attendance/my/stats` — Get own stats (Student)
 - DELETE `/api/v1/attendance/:id` — Delete attendance (Manager, Admin)
 
+### Coordinator Dashboard
+
+- GET `/api/v1/coordinator/dashboard` — Coordinator dashboard (Coordinator)
+- GET `/api/v1/coordinator/classes` — Assigned classes (Coordinator)
+- GET `/api/v1/coordinator/schedule` — Weekly schedule (Coordinator)
+- GET `/api/v1/coordinator/classes/:id/attendance` — Class attendance overview (Coordinator)
+- GET `/api/v1/coordinator/classes/:id/students` — Class student list (Coordinator)
+- POST `/api/v1/coordinator/classes/:id/announcement` — Send class announcement (Coordinator)
+- PATCH `/api/v1/coordinator/classes/:id/assign` — Assign coordinator to class (Manager, Admin)
+
+### Student Portal
+
+- GET `/api/v1/student/dashboard` — Comprehensive dashboard (Student)
+- GET `/api/v1/student/courses/available` — Available courses (Student)
+- POST `/api/v1/student/courses/:id/enroll` — Enroll in course (Student)
+- POST `/api/v1/student/courses/:id/drop` — Drop course (Student)
+- GET `/api/v1/student/courses/:id/progress` — Course progress details (Student)
+
 ## Assignment and Homework Management
 
 The assignment system enables teachers to create, publish, and grade assignments linked to courses, while students can view and submit their work.
@@ -214,19 +333,21 @@ The assignment system enables teachers to create, publish, and grade assignments
 
 ### Assignment API Endpoints
 
-- POST `/api/v1/assignments` — Create assignment (Teacher)
+- POST `/api/v1/assignments` — Create assignment (Teacher) - Now supports file uploads for materials
 - GET `/api/v1/assignments` — List assignments (All authenticated)
 - GET `/api/v1/assignments/my` — Get student's assignments (Student)
 - GET `/api/v1/assignments/:id` — Get assignment details (All authenticated)
 - PUT `/api/v1/assignments/:id` — Update assignment (Teacher)
 - DELETE `/api/v1/assignments/:id` — Delete assignment (Teacher)
-- POST `/api/v1/assignments/:id/submit` — Submit assignment (Student)
+- POST `/api/v1/assignments/:id/submit` — Submit assignment (Student) - Now supports file uploads for submissions
 - POST `/api/v1/assignments/:id/submissions/:submissionId/grade` — Grade submission (Teacher)
 - GET `/api/v1/assignments/:id/my-submission` — Get own submission (Student)
 - GET `/api/v1/assignments/:id/stats` — Get assignment statistics (Teacher+)
 - GET `/api/v1/assignments/:id/deadline` — Check deadline status (All authenticated)
 - PATCH `/api/v1/assignments/:id/publish` — Publish assignment (Teacher)
 - PATCH `/api/v1/assignments/:id/close` — Close assignment (Teacher)
+- POST `/api/v1/assignments/:id/materials` — Upload additional materials (Teacher)
+- DELETE `/api/v1/assignments/:id/materials` — Delete material file (Teacher)
 
 #### Quick cURL Examples
 
@@ -276,6 +397,32 @@ curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
 
 ### Completed Features (updated)
 
+- API documentation with Swagger/OpenAPI 3.0
+- Interactive Swagger UI at /api-docs
+- Auto-generated documentation from JSDoc comments
+- Comprehensive endpoint documentation (request/response schemas)
+- Authentication and RBAC documentation
+- 'Try it out' functionality for endpoint testing
+- Reusable component schemas
+- Example requests and responses
+- OpenAPI JSON spec export
+- Student portal APIs
+- Comprehensive student dashboard (single API call)
+- Self-service course enrollment and drop
+- Available courses discovery
+- Course-specific progress tracking
+- Integration with all student-facing features
+- Strict ownership validation (students access only own data)
+- Student-only RBAC enforcement
+- File upload and storage with Cloudinary
+- Profile avatar upload and management
+- Assignment material uploads (teacher)
+- Assignment submission file uploads (student)
+- Automatic file type validation (images, documents)
+- File size limits (images: 5MB, documents: 10MB)
+- Secure file deletion from cloud storage
+- CDN delivery for uploaded files
+- Organized folder structure in Cloudinary
 - Comprehensive grading system with grade book
 - Multiple grade types (assignments, exams, quizzes, manual, participation)
 - GPA calculation (4.0 scale)
@@ -286,6 +433,35 @@ curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
 - Student grade viewing and GPA tracking
 - Teacher grade management
 - Assignment grade synchronization
+- Reports and analytics system
+- Student performance reports with GPA, grades, attendance, assignments
+- Teacher workload analytics with course and student metrics
+- Course enrollment trends and utilization analysis
+- Attendance statistics with low-attendance student identification
+- Course-specific analytics (enrollment, assignments, grades, attendance)
+- Class performance reports
+- Role-specific dashboard summaries
+- Mongoose aggregation pipelines for complex queries
+- Date range filtering for time-based analysis
+- RBAC-enforced report access control
+- Manager dashboard APIs
+- Teacher oversight and performance monitoring
+- Course approval workflows (approve/reject)
+- Schedule approval workflows (approve/reject)
+- Manager dashboard with pending approvals
+- Course statistics for manager overview
+- Teacher performance metrics and analytics
+- Approval status tracking (pending, approved, rejected)
+- Manager-only RBAC enforcement
+- Admin dashboard APIs
+- User management (CRUD all users, role assignment, activation/deactivation)
+- System settings management (platform configuration, feature flags)
+- Bulk operations (user import up to 100, student enrollment up to 100)
+- Comprehensive audit logging for all admin actions
+- User statistics and analytics
+- Audit log retention (90 days with automatic cleanup)
+- IP address and user agent tracking for security
+- Strict admin-only RBAC enforcement
 
 ### Data Model Relationships
 
@@ -304,6 +480,17 @@ curl http://localhost:5000/api/v1/assignments/<ASSIGNMENT_ID>/stats \
 - Late submission handling with penalties
 - Assignment statistics and analytics
 - Deadline validation and status tracking
+- Reports and analytics system with comprehensive data analysis
+- Student performance reports with GPA, grades, attendance, assignments
+- Teacher workload analytics with course and student metrics
+- Course enrollment trends and utilization analysis
+- Attendance statistics with low-attendance student identification
+- Course-specific analytics (enrollment, assignments, grades, attendance)
+- Class performance reports
+- Role-specific dashboard summaries
+- Mongoose aggregation pipelines for complex queries
+- Date range filtering for time-based analysis
+- RBAC-enforced report access control
 
 ## Attendance Tracking
 
@@ -338,6 +525,18 @@ Google OAuth (add these):
 - `GOOGLE_CLIENT_SECRET`
 - `GOOGLE_CALLBACK_URL` (e.g. `http://localhost:5000/api/v1/auth/google/callback`)
 - `FRONTEND_URL` (optional redirect target for OAuth web flows)
+
+Cloudinary (Phase 11 - add these):
+- `CLOUDINARY_CLOUD_NAME` - Your Cloudinary cloud name
+- `CLOUDINARY_API_KEY` - API key from Cloudinary dashboard
+- `CLOUDINARY_API_SECRET` - API secret from Cloudinary dashboard
+
+Email Service (Phase 12 - add these):
+- `EMAIL_HOST` - SMTP server host (e.g., smtp.gmail.com)
+- `EMAIL_PORT` - SMTP port (587 for TLS, 465 for SSL)
+- `EMAIL_USER` - SMTP username (usually your email address)
+- `EMAIL_PASSWORD` - SMTP password (for Gmail, use App Password)
+- `EMAIL_FROM` - Sender email address
 
 Note: Use strong, unique secrets for JWT; you can generate with `openssl rand -base64 32`.
 
@@ -473,8 +672,1059 @@ The scheduling system provides recurring weekly schedule management (master time
 - Schedule-to-Class instance generation
 - Soft delete for schedule deactivation
 
+## File Upload and Storage
+
+The file upload system provides cloud storage integration with Cloudinary for handling profile avatars and assignment materials. The system uses Multer for handling multipart/form-data and Cloudinary SDK for cloud storage and CDN delivery.
+
+### Features
+
+- Cloudinary integration for cloud storage and CDN delivery
+- Multer middleware for handling multipart/form-data
+- Support for images (profile avatars) and documents (assignments)
+- Automatic file type and size validation
+- Organized folder structure in Cloudinary (profiles, assignments, courses)
+- Secure file deletion when removing avatars or attachments
+- Memory-based storage (no local disk usage)
+
+### File Upload Workflow
+
+#### User uploads profile avatar:
+1. User selects image file (JPG, PNG, GIF, WebP)
+2. Frontend sends multipart/form-data to POST /api/v1/auth/profile/avatar
+3. Multer validates file type and size (max 5MB)
+4. File uploaded to Cloudinary in 'yourshikshak/profiles' folder
+5. Cloudinary URL stored in User.profile.avatar
+6. Old avatar automatically deleted if exists
+
+#### Teacher uploads assignment materials:
+1. Teacher creates assignment with materials
+2. Uploads up to 5 documents (PDF, DOC, DOCX, TXT)
+3. Files uploaded to Cloudinary in 'yourshikshak/assignments/materials' folder
+4. URLs stored in Assignment.attachments array
+5. Can upload additional materials later using POST /:id/materials
+
+#### Student submits assignment with files:
+1. Student submits assignment with up to 5 attachments
+2. Files uploaded to Cloudinary in 'yourshikshak/assignments/submissions' folder
+3. URLs stored in Submission.attachments array
+4. Supports resubmission with new files
+
+## Cloudinary Setup
+
+1. Sign up for free Cloudinary account at https://cloudinary.com/users/register/free
+2. Go to Dashboard: https://cloudinary.com/console
+3. Copy Cloud Name, API Key, and API Secret from dashboard
+4. Add credentials to .env file:
+   - CLOUDINARY_CLOUD_NAME=your-cloud-name
+   - CLOUDINARY_API_KEY=your-api-key
+   - CLOUDINARY_API_SECRET=your-api-secret
+5. (Optional) Configure upload presets in Cloudinary dashboard
+6. (Optional) Set up folder structure for organization
+7. Test file upload using Postman or frontend
+
+### File Upload Limits
+
+#### Profile Avatars:
+- File types: JPEG, JPG, PNG, GIF, WebP
+- Max size: 5MB per file
+- Max files: 1 (single upload)
+
+#### Assignment Materials (Teacher):
+- File types: PDF, DOC, DOCX, TXT
+- Max size: 10MB per file
+- Max files: 5 per request (can upload more in separate requests)
+
+#### Assignment Submissions (Student):
+- File types: PDF, DOC, DOCX, TXT
+- Max size: 10MB per file
+- Max files: 5 per submission
+
+#### Cloudinary Free Tier:
+- Storage: 25 GB
+- Bandwidth: 25 GB/month
+- Transformations: 25,000/month
+
+### Cloudinary Features
+
+- Automatic image optimization (quality, format)
+- CDN delivery for fast global access
+- Image transformations (resize, crop, filters)
+- Secure URLs with signed uploads (future enhancement)
+- Automatic backup and redundancy
+- Media library management dashboard
+- Analytics and usage tracking
+
+### Security Best Practices
+
+- File type validation (MIME type and extension)
+- File size limits to prevent DoS attacks
+- Memory storage (no local disk pollution)
+- Cloudinary URL validation before deletion
+- Only authenticated users can upload files
+- RBAC enforced on all upload endpoints
+- Automatic cleanup when deleting resources
+
+## Notification System (Phase 12)
+
+The notification system provides dual-channel notifications (email and in-app) for keeping users informed about important events in the platform. The system supports multiple notification categories, priorities, and automatic event-driven triggers.
+
+### Features
+
+- **Dual-channel notifications**: Email (via nodemailer) and In-App (database)
+- **Multiple notification categories**: Assignment due, graded, grade posted, attendance marked, course enrollment, class scheduled, cancelled, announcements, and system notifications
+- **Priority-based notifications**: Low, medium, high, and urgent priority levels
+- **Read/unread tracking**: In-app notifications with read status and timestamps
+- **Automatic email delivery**: HTML email templates with notification-specific content
+- **Event-driven triggers**: Automatic notifications from controllers (assignment graded, grade posted, attendance marked)
+- **User notification management**: View, mark as read, delete notifications
+- **Automatic cleanup**: TTL index for expired notification deletion
+
+### Notification Workflow
+
+#### 1. Teacher grades assignment:
+- Teacher grades student submission
+- System automatically triggers notification
+- Email sent to student with grade details
+- In-app notification created in database
+- Student sees unread notification badge
+
+#### 2. Student views notifications:
+- Student logs in and sees unread count
+- Clicks notifications to view list
+- Reads notification and marks as read
+- Can filter by category or priority
+- Can delete individual or all notifications
+
+#### 3. Admin sends announcement:
+- Admin creates manual notification
+- Selects recipient user(s)
+- Chooses notification type (email, in-app, both)
+- Sets priority and category
+- Notification delivered to selected users
+
+### Notification Categories
+
+- **ASSIGNMENT_DUE**: Assignment deadline approaching (24 hours before due date)
+- **ASSIGNMENT_GRADED**: Teacher graded student's submission
+- **GRADE_POSTED**: New grade added to grade book
+- **ATTENDANCE_MARKED**: Attendance marked for student
+- **COURSE_ENROLLMENT**: Student enrolled in new course
+- **CLASS_SCHEDULED**: New class scheduled
+- **CLASS_CANCELLED**: Class cancelled
+- **ANNOUNCEMENT**: General announcement from admin/teacher
+- **SYSTEM**: System notifications
+
+### Notification API Endpoints
+
+- POST `/api/v1/notifications` - Create notification (Manager, Admin)
+- GET `/api/v1/notifications/my` - Get own notifications (All authenticated)
+- GET `/api/v1/notifications/my/unread` - Get unread notifications (All authenticated)
+- GET `/api/v1/notifications/my/count` - Get unread count (All authenticated)
+- PATCH `/api/v1/notifications/:id/read` - Mark as read (All authenticated)
+- PATCH `/api/v1/notifications/:id/unread` - Mark as unread (All authenticated)
+- PATCH `/api/v1/notifications/my/read-all` - Mark all as read (All authenticated)
+- DELETE `/api/v1/notifications/:id` - Delete notification (All authenticated)
+- DELETE `/api/v1/notifications/my/all` - Delete all notifications (All authenticated)
+
+### Reports and Analytics API Endpoints
+
+- GET `/api/v1/reports/students/:id/performance` - Student performance report (Teacher+)
+- GET `/api/v1/reports/my/performance` - Own performance report (Student)
+- GET `/api/v1/reports/teachers/:id/workload` - Teacher workload report (Manager+)
+- GET `/api/v1/reports/my/workload` - Own workload report (Teacher)
+- GET `/api/v1/reports/enrollment-trends` - Enrollment trends (Manager+)
+- GET `/api/v1/reports/attendance-statistics` - Attendance statistics (Teacher+)
+- GET `/api/v1/reports/courses/:id/analytics` - Course analytics (Teacher+)
+- GET `/api/v1/reports/classes/:id/performance` - Class performance (Teacher+)
+- GET `/api/v1/reports/dashboard` - Dashboard summary (All authenticated)
+
+### Manager Dashboard APIs
+
+#### Dashboard
+- GET `/api/v1/manager/dashboard` - Manager dashboard (Manager, Admin)
+- GET `/api/v1/manager/course-stats` - Course statistics (Manager, Admin)
+
+#### Approval Workflows
+- GET `/api/v1/manager/approvals/pending` - Pending approvals (Manager, Admin)
+- PATCH `/api/v1/manager/courses/:id/approve` - Approve course (Manager, Admin)
+- PATCH `/api/v1/manager/courses/:id/reject` - Reject course (Manager, Admin)
+- PATCH `/api/v1/manager/schedules/:id/approve` - Approve schedule (Manager, Admin)
+- PATCH `/api/v1/manager/schedules/:id/reject` - Reject schedule (Manager, Admin)
+
+#### Teacher Oversight
+- GET `/api/v1/manager/teachers/performance` - All teachers performance (Manager, Admin)
+- GET `/api/v1/manager/teachers/:id/performance` - Specific teacher performance (Manager, Admin)
+
+### Admin Dashboard APIs
+
+#### User Management
+- POST `/api/v1/admin/users` - Create user (Admin only)
+- GET `/api/v1/admin/users` - List all users (Admin only)
+- GET `/api/v1/admin/users/stats` - User statistics (Admin only)
+- GET `/api/v1/admin/users/:id` - Get user by ID (Admin only)
+- PUT `/api/v1/admin/users/:id` - Update user (Admin only)
+- DELETE `/api/v1/admin/users/:id` - Delete user (Admin only)
+- PATCH `/api/v1/admin/users/:id/role` - Assign role (Admin only)
+- PATCH `/api/v1/admin/users/:id/activate` - Activate user (Admin only)
+- PATCH `/api/v1/admin/users/:id/deactivate` - Deactivate user (Admin only)
+
+#### Bulk Operations
+- POST `/api/v1/admin/bulk/import-users` - Bulk import users (Admin only)
+- POST `/api/v1/admin/bulk/enroll-students` - Bulk enroll students (Admin only)
+
+#### System Settings
+- GET `/api/v1/admin/settings` - Get system settings (Admin only)
+- PUT `/api/v1/admin/settings/:key` - Update setting (Admin only)
+- DELETE `/api/v1/admin/settings/:key` - Delete setting (Admin only)
+
+#### Audit Logs
+- GET `/api/v1/admin/audit-logs` - Get audit logs (Admin only)
+- GET `/api/v1/admin/audit-logs/my` - Get own audit logs (Admin only)
+
+### Notification Triggers
+
+Notifications are automatically triggered in the following scenarios:
+
+- **Assignment Graded**: Triggered in `assignmentController.gradeSubmissionController` after grading submission
+- **Grade Posted**: Triggered in `gradeController.addGradeController` after adding grade (only if published)
+- **Attendance Marked**: Triggered in `attendanceController.markAttendanceForStudent` after marking attendance
+- **Assignment Due**: Should be triggered by scheduled job (cron) that runs daily (future enhancement)
+
+All triggers use fire-and-forget pattern (non-blocking) to ensure main operations succeed even if notifications fail.
+
+### Email Service Setup
+
+#### For Gmail (Development):
+1. Enable 2-Factor Authentication on your Google account
+2. Go to Google Account > Security > 2-Step Verification > App passwords
+3. Generate app password for 'Mail' application
+4. Use the generated 16-character password as EMAIL_PASSWORD (not regular password)
+5. Set EMAIL_HOST=smtp.gmail.com and EMAIL_PORT=587
+
+#### For SendGrid (Production - Recommended):
+1. Sign up at https://sendgrid.com/ (free tier: 100 emails/day)
+2. Create API key in Settings > API Keys
+3. Set EMAIL_HOST=smtp.sendgrid.net, EMAIL_PORT=587
+4. Set EMAIL_USER=apikey, EMAIL_PASSWORD=your-api-key
+
+#### For Mailtrap (Testing):
+1. Sign up at https://mailtrap.io/ (free tier available)
+2. Get SMTP credentials from inbox settings
+3. Use Mailtrap credentials for development testing
+4. Emails are caught and not delivered (safe for testing)
+
+#### Test Email Configuration:
+- Server logs email connection status on startup
+- Send test notification to verify email delivery
+
+### Future Enhancements
+
+- User notification preferences (enable/disable categories, channels)
+- Email template engine (Handlebars, EJS) for better templates
+- SMS notifications via Twilio
+- Push notifications for mobile apps
+- Scheduled job for assignment due reminders (cron)
+- Notification batching (digest emails)
+- Unsubscribe functionality
+- Notification history and analytics
+
+## Reports and Analytics (Phase 13)
+
+The reporting and analytics system provides comprehensive data analysis using Mongoose aggregation pipelines. The system generates actionable insights for different user roles, with RBAC-enforced data access ensuring students see only their own data, teachers see their classes, and admin/manager see all reports.
+
+### Features
+
+- **Comprehensive analytics** using Mongoose aggregation pipelines
+- **Student performance reports** with GPA, grades, attendance, and assignments
+- **Teacher workload reports** with courses, students, assignments, and grading pending
+- **Course enrollment trends** with enrollment by month, top courses, and utilization rates
+- **Attendance statistics** with overall rates, by class, and low attendance student identification
+- **Course-specific analytics** including enrollment, assignments, grades, and attendance
+- **Class performance reports** with attendance by student
+- **Role-specific dashboard summaries** for all user roles
+- **Date range filtering** for time-based analysis
+- **RBAC-enforced data access** (students see own data, teachers see their classes, admin/manager see all)
+
+### Available Reports
+
+#### 1. Student Performance Report
+
+- Overall GPA and total courses
+- Course-by-course performance (grades, attendance, assignments)
+- Attendance statistics (total, present, absent, late, rate)
+- Assignment statistics (total, submitted, graded, average score)
+- **Accessible by:** Student (own), Teacher/Manager/Admin (any student)
+
+#### 2. Teacher Workload Report
+
+- Total courses, students, classes, assignments
+- Pending grading count (submissions awaiting grading)
+- Average class size
+- Course-by-course breakdown (students, assignments, classes)
+- **Accessible by:** Teacher (own), Manager/Admin (any teacher)
+
+#### 3. Course Enrollment Trends
+
+- Total courses and active courses
+- Total enrollments and average per course
+- Enrollment by month (time series)
+- Top courses by enrollment with utilization rates
+- Courses by status distribution
+- **Accessible by:** Manager and Admin only
+
+#### 4. Attendance Statistics
+
+- Overall attendance rate
+- Status distribution (present, absent, late)
+- Attendance by month (time series)
+- Attendance by class (identify problematic classes)
+- Low attendance students (attendance rate < 75%)
+- Filterable by course, teacher, class, date range
+- **Accessible by:** Teacher (own classes), Manager/Admin (all)
+
+#### 5. Course Analytics
+
+- Enrollment statistics (current, capacity, utilization)
+- Assignment statistics (total, by status, average submissions)
+- Grade statistics (average, distribution, passing rate)
+- Attendance statistics (overall rate for course)
+- **Accessible by:** Teacher (own courses), Manager/Admin (all)
+
+#### 6. Class Performance
+
+- Class details and attendance summary
+- Student-by-student attendance list
+- **Accessible by:** Teacher (own classes), Manager/Admin (all)
+
+#### 7. Dashboard Summary
+
+- Role-specific summary data
+- Admin/Manager: system-wide metrics
+- Teacher: my courses, students, pending tasks
+- Student: enrolled courses, upcoming assignments, recent grades
+- **Accessible by:** All authenticated users (role-specific data)
+
+### Aggregation Pipeline Examples
+
+The reporting system leverages Mongoose aggregation pipelines for complex queries:
+
+- **Student Performance:** $match student → $lookup courses → $lookup grades → $group by course → calculate averages
+- **Teacher Workload:** $match teacher → $lookup courses → $unwind students → count unique students → $lookup assignments → count pending
+- **Enrollment Trends:** $unwind students → $group by month → count enrollments → sort by month
+- **Attendance Statistics:** $match filters → $group by status → calculate rates → $lookup classes → group by class
+
+These pipelines leverage existing indexes for optimal performance.
+
+### Performance Considerations
+
+- Aggregation pipelines use existing compound indexes
+- Date range filtering reduces dataset size
+- Pagination support for large result sets (future enhancement)
+- Caching for frequently accessed reports (future enhancement)
+- Background job for pre-computing complex reports (future enhancement)
+
+## Admin Dashboard APIs (Phase 14)
+
+The admin dashboard system provides comprehensive user management, system settings management, bulk operations, and audit logging for platform administrators. All admin operations are strictly protected with admin-only RBAC enforcement and automatic audit trail tracking.
+
+### Features
+
+- **Comprehensive user management**: CRUD all users, role assignment, activation/deactivation
+- **System settings management**: Platform configuration, feature flags, type-safe settings
+- **Bulk operations**: User import (up to 100 per request), student enrollment (up to 100 per request)
+- **Comprehensive audit logging**: All admin actions tracked with IP address and user agent
+- **User statistics and analytics**: Total users, by role, active/inactive, recent registrations
+- **Strict admin-only RBAC enforcement**: Only exact admin role match (no hierarchical access)
+- **Automatic audit trail**: Immutable logs with 90-day retention and automatic cleanup
+- **IP address and user agent tracking**: Security auditing for all admin actions
+
+### Admin Workflows
+
+#### 1. User Management
+- Admin creates new user with specific role
+- Admin can update user details (email, role, profile)
+- Admin can activate/deactivate users (soft delete)
+- Admin can assign/change user roles
+- All actions are automatically logged in audit trail
+
+#### 2. Bulk Operations
+- Admin uploads CSV/JSON with user data
+- System validates all users before import
+- Bulk import creates up to 100 users at once
+- Returns success/failure report for each user
+- Admin can bulk enroll students in courses
+- Partial success supported (some succeed, some fail)
+
+#### 3. System Settings
+- Admin views all platform settings grouped by category
+- Admin updates feature flags (e.g., ENABLE_REGISTRATION)
+- Admin configures limits (e.g., MAX_FILE_SIZE, MAX_STUDENTS_PER_COURSE)
+- Settings are type-safe (boolean, string, number, JSON)
+- All setting changes are audit logged
+
+#### 4. Audit Logs
+- Admin views all admin actions across the platform
+- Can filter by admin, action type, target user, date range
+- Each log includes: action, performer, target, timestamp, metadata
+- Logs are immutable (cannot be edited or deleted)
+- Automatic cleanup after 90 days
+
+### Audit Logging
+
+#### Tracked Actions
+- USER_CREATED, USER_UPDATED, USER_DELETED
+- ROLE_ASSIGNED, USER_ACTIVATED, USER_DEACTIVATED
+- BULK_USER_IMPORT, BULK_ENROLLMENT
+- SETTINGS_UPDATED, SYSTEM_CONFIG_CHANGED
+
+#### Logged Information
+- Action type and description
+- Admin who performed action (performedBy)
+- Target resource and resource ID
+- Old and new values (for updates)
+- IP address and user agent
+- Timestamp and success status
+- Error message if action failed
+
+#### Retention Policy
+- Audit logs retained for 90 days
+- Automatic cleanup via MongoDB TTL index
+- Configurable retention period in SystemSettings
+
+#### Compliance
+- Immutable logs (no updates or deletes)
+- Complete audit trail for security and compliance
+- Supports forensic analysis and accountability
+
+### System Settings
+
+#### Setting Types
+- **BOOLEAN**: Feature flags (e.g., ENABLE_REGISTRATION, ENABLE_OAUTH)
+- **STRING**: Text configurations (e.g., PLATFORM_NAME, SUPPORT_EMAIL)
+- **NUMBER**: Numeric limits (e.g., MAX_FILE_SIZE, MAX_STUDENTS_PER_COURSE)
+- **JSON**: Complex configurations (e.g., EMAIL_TEMPLATES, NOTIFICATION_PREFERENCES)
+
+#### Setting Categories
+- **feature_flags**: Enable/disable platform features
+- **limits**: Resource limits and quotas
+- **email**: Email service configuration
+- **security**: Security settings (password policy, session timeout)
+- **ui**: Frontend configuration (theme, branding)
+
+#### Public Settings
+- Some settings can be marked as public (isPublic: true)
+- Public settings are accessible to non-admin users
+- Useful for frontend configuration (e.g., ENABLE_REGISTRATION)
+
+#### Default Settings
+- System can be seeded with default settings on first deployment
+- Settings can be updated via admin API
+
+### Bulk Operations
+
+#### Bulk User Import
+- Import up to 100 users per request
+- Supports CSV or JSON format (frontend converts to JSON)
+- Validates all users before import
+- Returns detailed success/failure report
+- Failed users include reason (duplicate email, validation error)
+- Successful users are created with hashed passwords
+- All imports are audit logged
+
+#### Bulk Student Enrollment
+- Enroll up to 100 students in a course per request
+- Validates student existence and role
+- Checks course capacity
+- Prevents duplicate enrollments
+- Returns detailed success/failure report
+- All enrollments are audit logged
+
+#### Partial Success Handling
+- Bulk operations support partial success
+- Some records succeed while others fail
+- Detailed error reporting for failed records
+- Allows admin to fix issues and retry failed records
+
+### Security Best Practices
+
+- All admin endpoints require authentication AND admin role
+- No hierarchical access (only exact admin role match)
+- All admin actions are audit logged (immutable trail)
+- IP address and user agent tracked for security
+- Cannot delete admin users (only deactivate)
+- Cannot delete users with dependencies (data integrity)
+- Soft delete (deactivation) preferred over hard delete
+- Audit logs retained for 90 days for compliance
+
+## Manager Dashboard APIs (Phase 15)
+
+The manager dashboard system provides comprehensive oversight capabilities for managers to monitor teacher performance, approve course and schedule creation requests, and access aggregated analytics. All manager operations are protected with RBAC using `authorizeMinRole(UserRole.MANAGER)` to allow both Manager and Admin access, following the role hierarchy where Admin (level 5) inherits all Manager (level 4) capabilities.
+
+### Features
+
+- **Teacher oversight and performance monitoring**: Comprehensive metrics for all teachers including courses taught, students enrolled, assignments created, and pending grading
+- **Course approval workflows**: Approve or reject course creation requests with notes and automatic activation
+- **Schedule approval workflows**: Approve or reject schedule creation/change requests with notes
+- **Manager dashboard**: Comprehensive overview with pending approvals, statistics, recent approvals, and teacher performance summary
+- **Course statistics and analytics**: Course overview with status distribution, enrollment trends, and top courses
+- **Approval status tracking**: Pending, Approved, Rejected, and Auto-Approved statuses for courses and schedules
+- **RBAC enforcement**: Manager-only access with Admin inheritance (hierarchical access via `authorizeMinRole`)
+
+### Manager Workflows
+
+#### 1. Course Approval Workflow
+
+- Teacher creates course with `requiresApproval` flag set to true
+- Course status set to DRAFT, `approvalStatus` set to PENDING
+- Manager views pending approvals in dashboard
+- Manager reviews course details (name, description, teacher, schedule)
+- Manager approves or rejects with notes
+- If approved: course status changes to ACTIVE, `approvalStatus` to APPROVED
+- If rejected: course remains DRAFT, `approvalStatus` to REJECTED, teacher notified
+
+#### 2. Schedule Approval Workflow
+
+- Coordinator/Admin creates schedule with `requiresApproval` flag set to true
+- Schedule `isActive` set to false, `approvalStatus` set to PENDING
+- Manager views pending schedule approvals
+- Manager reviews schedule details (teacher, time, room, conflicts)
+- Manager approves or rejects with notes
+- If approved: schedule `isActive` set to true, `approvalStatus` to APPROVED
+- If rejected: schedule remains inactive, `approvalStatus` to REJECTED
+
+#### 3. Teacher Oversight
+
+- Manager views all teachers performance metrics
+- Sees courses taught, students enrolled, assignments created
+- Identifies teachers with high pending grading count
+- Reviews teacher workload and average class sizes
+- Uses data for teacher support and resource allocation
+
+#### 4. Manager Dashboard
+
+- Manager logs in and sees dashboard summary
+- Views pending approvals count (courses + schedules)
+- Sees total teachers, courses, students
+- Reviews recent approvals history
+- Accesses teacher performance summary (top 5 by student count)
+
+### Approval Workflows
+
+#### Approval Statuses
+
+- **PENDING**: Awaiting manager approval
+- **APPROVED**: Manager approved, resource activated
+- **REJECTED**: Manager rejected, resource remains inactive
+- **AUTO_APPROVED**: Automatically approved based on rules (future enhancement)
+
+#### Approval Fields
+
+- `approvalStatus`: Current approval state
+- `approvedBy`: Manager who approved/rejected
+- `approvalDate`: When approval/rejection occurred
+- `approvalNotes`: Manager's notes (required for rejection)
+- `requiresApproval`: Whether resource needs approval
+
+#### Approval Policies
+
+- System setting: `COURSE_REQUIRES_APPROVAL` (global policy)
+- Teacher-specific: New teachers require approval, experienced teachers don't (future)
+- Resource-specific: High-capacity courses require approval (future)
+- Configurable via SystemSettings model
+
+#### Approval Integration
+
+- Course model: approval fields added (backward compatible)
+- Schedule model: approval fields added (backward compatible)
+- Existing resources without approval fields continue to work
+- New resources can opt-in to approval workflow
+
+### Manager Dashboard API Endpoints
+
+#### Dashboard
+
+- GET `/api/v1/manager/dashboard` - Manager dashboard (Manager, Admin)
+  - Returns: pending approvals count, total teachers/courses/students, recent approvals, teacher performance summary
+
+- GET `/api/v1/manager/course-stats` - Course statistics (Manager, Admin)
+  - Returns: total courses, active courses, pending approvals, courses by status, top courses by enrollment
+
+#### Approval Workflows
+
+- GET `/api/v1/manager/approvals/pending` - Pending approvals (Manager, Admin)
+  - Returns: pending courses and schedules with summary
+
+- PATCH `/api/v1/manager/courses/:id/approve` - Approve course (Manager, Admin)
+  - Body: `{ approvalNotes? }` (optional)
+  - Sets course status to ACTIVE and approvalStatus to APPROVED
+
+- PATCH `/api/v1/manager/courses/:id/reject` - Reject course (Manager, Admin)
+  - Body: `{ approvalNotes }` (required - rejection reason)
+  - Sets approvalStatus to REJECTED, keeps course as DRAFT
+
+- PATCH `/api/v1/manager/schedules/:id/approve` - Approve schedule (Manager, Admin)
+  - Body: `{ approvalNotes? }` (optional)
+  - Sets schedule isActive to true and approvalStatus to APPROVED
+
+- PATCH `/api/v1/manager/schedules/:id/reject` - Reject schedule (Manager, Admin)
+  - Body: `{ approvalNotes }` (required - rejection reason)
+  - Sets approvalStatus to REJECTED, keeps schedule inactive
+
+#### Teacher Oversight
+
+- GET `/api/v1/manager/teachers/performance` - All teachers performance (Manager, Admin)
+  - Returns: array of teacher performance metrics sorted by total students (busiest first)
+
+- GET `/api/v1/manager/teachers/:id/performance` - Specific teacher performance (Manager, Admin)
+  - Returns: detailed performance metrics for a specific teacher
+
+### Teacher Performance Metrics
+
+Each teacher performance record includes:
+
+- `teacherId`: Teacher user ID
+- `teacherName`: Full name of teacher
+- `totalCourses`: Number of courses taught
+- `totalStudents`: Unique students across all courses
+- `averageClassSize`: Average students per course
+- `totalAssignments`: Total assignments created
+- `gradingPending`: Number of submissions awaiting grading
+- `averageGradeGiven`: Average grade assigned by teacher
+
+### Role Hierarchy
+
+- **Admin (Level 5)**: Full system access, user management, system settings, all manager capabilities
+- **Manager (Level 4)**: Teacher oversight, course/schedule approvals, reports, all teacher capabilities
+- **Teacher (Level 3)**: Create courses/assignments, grade students, mark attendance
+- **Coordinator (Level 3)**: Schedule classes, monitor attendance, coordinate students (parallel to Teacher)
+- **Student (Level 1)**: View courses, submit assignments, view own grades/attendance
+
+Higher roles inherit lower role capabilities. Manager can perform all Teacher operations plus approval workflows.
+
+### Security Best Practices
+
+- All manager endpoints use `authorizeMinRole(UserRole.MANAGER)` for hierarchical access
+- Admins can access all manager endpoints (role hierarchy)
+- Approval actions require authentication and manager role
+- Rejection requires approval notes (explanation required)
+- All approval actions are tracked with `approvedBy` and `approvalDate`
+
+## Class Coordinator Dashboard APIs (Phase 16)
+
+The coordinator dashboard system provides class-level management and coordination capabilities for coordinators to monitor attendance, coordinate schedules, and communicate with students in their assigned classes. All coordinator operations are protected with RBAC using `authorize(UserRole.COORDINATOR)` for coordinator-only access, with service-layer validation ensuring coordinators can only access their assigned classes.
+
+### Features
+
+- **Class Assignment**: Admin/Manager can assign coordinators to specific classes
+- **Coordinator Dashboard**: Comprehensive overview of assigned classes, upcoming classes, total students, today's attendance, and low attendance students
+- **Attendance Monitoring**: View attendance overview for each assigned class with detailed statistics
+- **Student Communication**: Send announcements to all or specific students in assigned classes via notification system
+- **Schedule Coordination**: View weekly schedule for all assigned classes across different courses
+- **Low Attendance Identification**: Automatically identifies students with attendance rate below 75%
+- **RBAC Enforcement**: Coordinator-only access with class-level assignment validation
+
+### Coordinator Workflows
+
+1. **Coordinator Assignment:**
+   - Admin/Manager assigns coordinator to specific classes via PATCH `/api/v1/coordinator/classes/:id/assign`
+   - Coordinator field added to Class model
+   - Coordinator receives access to assigned classes only
+
+2. **Daily Coordination:**
+   - Coordinator logs in and views dashboard via GET `/api/v1/coordinator/dashboard`
+   - Sees assigned classes (upcoming, in-progress, completed)
+   - Views today's attendance status (marked vs pending)
+   - Identifies students with low attendance rates
+   - Reviews weekly schedule for assigned classes
+
+3. **Attendance Monitoring:**
+   - Coordinator views attendance overview for each class via GET `/api/v1/coordinator/classes/:id/attendance`
+   - Sees which students are present, absent, late, or unmarked
+   - Identifies attendance patterns and issues
+   - Can communicate with students about attendance
+
+4. **Student Communication:**
+   - Coordinator sends announcements to class students via POST `/api/v1/coordinator/classes/:id/announcement`
+   - Can target all students or specific students
+   - Announcements sent via notification system (email + in-app)
+   - Useful for class reminders, schedule changes, important updates
+
+5. **Schedule Coordination:**
+   - Coordinator views weekly schedule for assigned classes via GET `/api/v1/coordinator/schedule`
+   - Sees all classes grouped by day and time
+   - Helps coordinate logistics (rooms, resources, timing)
+   - Identifies scheduling conflicts or issues
+
+### Coordinator vs Teacher
+
+- **Teacher (Level 3):**
+  - Focuses on teaching and academic content
+  - Creates courses and assignments
+  - Grades student work
+  - Marks attendance
+  - Manages course curriculum
+
+- **Coordinator (Level 3 - Parallel Role):**
+  - Focuses on class logistics and coordination
+  - Monitors attendance across assigned classes
+  - Communicates with students about logistics
+  - Coordinates schedules and resources
+  - Identifies and addresses attendance issues
+  - Does not grade or create assignments
+
+- **Collaboration:**
+  - Classes can have both teacher (academic) and coordinator (logistics)
+  - Teacher handles content, coordinator handles operations
+  - Both can mark attendance (teacher for academic tracking, coordinator for logistics)
+  - Coordinator supports teacher by managing class logistics
+
+### Class Assignment Model
+
+- **Class Model Fields:**
+  - teacher: Required (teaches the class, creates content)
+  - coordinator: Optional (manages class logistics)
+
+- **Assignment Scenarios:**
+  - Class with teacher only (teacher handles everything)
+  - Class with teacher + coordinator (divided responsibilities)
+  - Multiple classes can share same coordinator
+  - Coordinator can be assigned to classes across different courses
+
+- **Access Control:**
+  - Coordinators can only access their assigned classes
+  - Validated via `validateCoordinatorClassAccess` in service layer
+  - Prevents coordinators from accessing other coordinators' classes
+
+### Coordinator Dashboard API Endpoints
+
+**Dashboard:**
+- GET `/api/v1/coordinator/dashboard` — Coordinator dashboard (Coordinator)
+- GET `/api/v1/coordinator/classes` — Assigned classes (Coordinator)
+- GET `/api/v1/coordinator/schedule` — Weekly schedule (Coordinator)
+
+**Class Management:**
+- GET `/api/v1/coordinator/classes/:id/attendance` — Class attendance overview (Coordinator)
+- GET `/api/v1/coordinator/classes/:id/students` — Class student list (Coordinator)
+
+**Student Communication:**
+- POST `/api/v1/coordinator/classes/:id/announcement` — Send class announcement (Coordinator)
+
+**Coordinator Assignment (Admin/Manager):**
+- PATCH `/api/v1/coordinator/classes/:id/assign` — Assign coordinator to class (Manager, Admin)
+
+### Dashboard Response Format
+
+```json
+{
+  "success": true,
+  "data": {
+    "dashboard": {
+      "assignedClasses": 10,
+      "upcomingClasses": 5,
+      "totalStudents": 150,
+      "attendanceToday": {
+        "total": 50,
+        "marked": 45,
+        "pending": 5
+      },
+      "lowAttendanceStudents": [
+        {
+          "studentId": "...",
+          "studentName": "John Doe",
+          "attendanceRate": 65.5
+        }
+      ],
+      "recentClasses": [...]
+    }
+  }
+}
+```
+
+### Security Best Practices
+
+- All coordinator endpoints use `authorize(UserRole.COORDINATOR)` for coordinator-only access
+- Service layer validates coordinator has access to specific classes (assigned classes only)
+- Coordinators can only access classes where `class.coordinator === coordinatorId`
+- Coordinator assignment endpoint uses `authorizeMinRole(UserRole.MANAGER)` to allow Manager and Admin
+- Prevents coordinators from accessing other coordinators' classes
+
 ### Progress Tracker
 
-- Phase 10 complete: Scheduling and Timetable Management
-- 10/18 phases completed
-- Next phase: Phase 11 — File Upload Integration with Cloudinary
+- Phase 16 complete: Class Coordinator-Specific APIs
+- Phase 17 complete: Student Portal APIs
+- Phase 18 complete: API Documentation with Swagger/OpenAPI
+- 18/18 core phases completed
+- Enhancement phases: Phase 19 — Error Handling, Logging, and Validation Enhancements (handled by another team)
+
+## Student Portal APIs (Phase 17)
+
+The student portal system provides a comprehensive unified dashboard for students with aggregated data from all modules in a single API call, plus self-service course enrollment and drop capabilities. The system consolidates existing student-facing endpoints scattered across different routes into a unified portal with strict student-only RBAC enforcement and ownership validation ensuring students can only access their own data.
+
+### Features
+
+- **Comprehensive student dashboard** with aggregated data in a single API call
+- **Self-service course enrollment and drop** with automatic validation
+- **Available courses discovery** showing active, not full, not already enrolled courses
+- **Course-specific progress tracking** with assignments, grades, and attendance
+- **Integration with all existing student endpoints** across all modules
+- **Strict student-only RBAC enforcement** with `authorize(UserRole.STUDENT)` for exact role matching
+- **Ownership validation** ensuring students can only access their own data (req.user._id matching)
+
+### Student Portal Workflows
+
+#### 1. Student Dashboard
+
+- Student logs in and views comprehensive dashboard via GET `/api/v1/student/dashboard`
+- Dashboard shows in a single API call:
+  - Enrolled courses with teacher names and schedules
+  - Upcoming assignments with due dates and overdue flags
+  - Recent grades with letter grades and course names
+  - Attendance summary (total classes, present, absent, late, attendance rate)
+  - Overall GPA across all courses (4.0 scale)
+  - Upcoming classes (next 10 scheduled classes with dates, times, locations)
+  - Unread notifications count and recent notifications (5 most recent)
+- Optimized for frontend performance (one API call vs multiple)
+
+#### 2. Course Enrollment
+
+- Student browses available courses via GET `/api/v1/student/courses/available`
+- Filters show only: active courses, not full (capacity available), not already enrolled
+- Student clicks enroll on desired course via POST `/api/v1/student/courses/:id/enroll`
+- System validates: course active, capacity available, not duplicate enrollment
+- Student enrolled and course appears in dashboard
+
+#### 3. Course Drop
+
+- Student views enrolled courses in dashboard
+- Clicks drop on course to unenroll via POST `/api/v1/student/courses/:id/drop`
+- System validates: student is enrolled, course allows drops
+- Student unenrolled and course removed from dashboard
+
+#### 4. Course Progress Tracking
+
+- Student views detailed progress for specific course via GET `/api/v1/student/courses/:id/progress`
+- Sees all assignments with submission status
+- Views all grades for the course
+- Checks attendance records and rate
+- Monitors overall progress metrics (assignments completed, average grade, attendance rate)
+
+### Student Dashboard Data
+
+The student dashboard aggregates data from multiple sources:
+
+- **Enrolled Courses:** List of active courses with teacher names, schedules, and enrollment dates
+- **Upcoming Assignments:** Next 10 assignments sorted by due date, with overdue flags and submission status
+- **Recent Grades:** Last 10 grades with scores, letter grades, course names, and graded dates
+- **Attendance Summary:** Total classes, present/absent/late counts, and attendance rate percentage
+- **Overall GPA:** Calculated across all courses using 4.0 scale (via Grade.calculateStudentGPA static method)
+- **Upcoming Classes:** Next 10 scheduled classes with dates, times, locations, and course names
+- **Notifications:** Unread count and 5 most recent unread notifications with categories and priorities
+- **Performance Metrics:** Aggregated from all enrolled courses
+
+### Student Role Capabilities
+
+#### Can Do
+
+- View enrolled courses and available courses
+- Enroll in and drop courses (self-service)
+- Submit assignments with files
+- View own grades and GPA
+- View own attendance records and statistics
+- View own performance reports
+- Manage own notifications (read, delete)
+- Update own profile and avatar
+
+#### Cannot Do
+
+- Create or modify courses (teacher/manager only)
+- Grade assignments (teacher only)
+- Mark attendance (teacher/coordinator only)
+- View other students' data (privacy enforced)
+- Access admin/manager/coordinator dashboards
+- Manage system settings or users
+
+#### Data Access
+
+- Students can only access their own data
+- Ownership validated via req.user._id in all queries
+- Cannot query other students' grades, attendance, or assignments
+- Privacy enforced at service and controller layers
+
+### Student Portal API Endpoints
+
+**Dashboard:**
+- GET `/api/v1/student/dashboard` — Comprehensive dashboard (Student)
+  - Returns: enrolled courses, upcoming assignments, recent grades, attendance summary, GPA, upcoming classes, notifications
+
+**Course Enrollment:**
+- GET `/api/v1/student/courses/available` — Available courses (Student)
+  - Returns: active courses not full and not already enrolled
+- POST `/api/v1/student/courses/:id/enroll` — Enroll in course (Student)
+  - Self-service enrollment with automatic validation
+- POST `/api/v1/student/courses/:id/drop` — Drop course (Student)
+  - Self-service unenrollment
+
+**Course Progress:**
+- GET `/api/v1/student/courses/:id/progress` — Course progress details (Student)
+  - Returns: course info, assignments with submission status, grades, attendance, progress metrics
+
+### Existing Student Endpoints (Other Routes)
+
+Student-facing endpoints exist across multiple routes for specific operations:
+
+**Course Routes:**
+- GET `/api/v1/courses/my` — Enrolled courses (Student)
+
+**Assignment Routes:**
+- GET `/api/v1/assignments/my` — Student assignments (Student)
+- POST `/api/v1/assignments/:id/submit` — Submit assignment (Student)
+- GET `/api/v1/assignments/:id/my-submission` — Get own submission (Student)
+
+**Grade Routes:**
+- GET `/api/v1/grades/my` — Student grades (Student)
+- GET `/api/v1/grades/my/gpa` — Student GPA (Student)
+- GET `/api/v1/grades/my/courses/:id` — Course grades (Student)
+
+**Attendance Routes:**
+- GET `/api/v1/attendance/my` — Student attendance (Student)
+- GET `/api/v1/attendance/my/stats` — Attendance statistics (Student)
+
+**Report Routes:**
+- GET `/api/v1/reports/my/performance` — Performance report (Student)
+
+**Notification Routes:**
+- GET `/api/v1/notifications/my` — Notifications (All authenticated)
+- GET `/api/v1/notifications/my/unread` — Unread notifications (All authenticated)
+- GET `/api/v1/notifications/my/count` — Unread count (All authenticated)
+
+**Auth Routes:**
+- PUT `/api/v1/auth/profile` — Update profile (All authenticated)
+- POST `/api/v1/auth/profile/avatar` — Upload avatar (All authenticated)
+
+**Note:** Student portal routes provide unified dashboard and self-service enrollment. Existing endpoints remain for specific operations and data queries.
+
+### API Organization by Role
+
+The API is organized by role for clear separation of concerns:
+
+- **/api/v1/auth** — Authentication (public + all roles)
+- **/api/v1/admin** — Admin operations (admin only)
+- **/api/v1/manager** — Manager operations (manager + admin)
+- **/api/v1/coordinator** — Coordinator operations (coordinator only)
+- **/api/v1/student** — Student portal (student only)
+- **/api/v1/courses** — Course management (all roles, filtered by permissions)
+- **/api/v1/assignments** — Assignment management (teacher + student)
+- **/api/v1/grades** — Grade management (teacher + student)
+- **/api/v1/attendance** — Attendance tracking (teacher/coordinator + student)
+- **/api/v1/schedules** — Schedule management (all roles)
+- **/api/v1/notifications** — Notifications (all roles)
+- **/api/v1/reports** — Reports and analytics (role-specific)
+
+This organization provides clear separation of concerns by role.
+
+### Security Best Practices
+
+- All student portal routes use `authorize(UserRole.STUDENT)` for exact student role matching
+- No hierarchical access (only students can access these endpoints)
+- Ownership validation in service layer ensures students only access their own data
+- Controllers use req.user._id to filter queries (e.g., courses where students includes req.user._id)
+- Service layer validates student exists and has STUDENT role before operations
+- Enrollment operations reuse existing courseService functions with built-in validation
+
+## Error Handling and Logging
+
+This project includes a production-ready error handling and logging system.
+
+- **Custom error classes:** `ValidationError`, `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `ConflictError`, `BadRequestError`, `InternalServerError`, `ServiceUnavailableError` (base `AppError`).
+- **Centralized error middleware:** Normalizes errors (Mongoose, JWT, Multer), maps to HTTP status codes, and returns consistent JSON responses with timestamp, path, and method.
+- **Winston logger:** Structured JSON logs with multiple transports and rotation; colorized console in development.
+- **Morgan integration:** HTTP request logs streamed to Winston (files in production).
+
+### Custom Error Classes
+
+- **AppError (Base):** `statusCode`, `isOperational`, `code`.
+- **ValidationError (400):** Includes `errors: { field, message }[]`.
+- **AuthenticationError (401):** Auth failures.
+- **AuthorizationError (403):** Permission failures.
+- **NotFoundError (404):** Missing resources.
+- **ConflictError (409):** Duplicate/conflict.
+- **BadRequestError (400):** Invalid input/state.
+- **InternalServerError (500):** Server/programming errors.
+- **ServiceUnavailableError (503):** Temporary outages.
+
+Usage examples:
+
+- Controllers: `throw new NotFoundError('User')` instead of `res.status(404).json(...)`.
+- Services: `throw new BadRequestError('Invalid input')` instead of `throw new Error(...)`.
+- Middlewares: `throw new AuthenticationError()` instead of `res.status(401).json(...)`.
+
+### Winston Logging
+
+- **Log levels:** `error`, `warn`, `info`, `http`, `debug` (controlled by `LOG_LEVEL`).
+- **Transports:**
+  - Console (dev): colorized, human-readable.
+  - Files: `error.log` (errors), `combined.log` (all), `http.log` (HTTP).
+- **Format:** JSON with timestamp and stack (for errors in files). Console uses succinct colored output.
+- **Rotation:** 5MB per file, keep 5–10 rotated files.
+- **Morgan:** In production, `morgan('combined', { stream })` writes to `http.log` and `combined.log`.
+
+### Standard Error Response
+
+```json
+{
+  "success": false,
+  "message": "User not found",
+  "code": "NOT_FOUND",
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "path": "/api/v1/users/123",
+  "method": "GET",
+  "stack": "Error: User not found..." // shown only in non-production
+}
+```
+
+Validation example:
+
+```json
+{
+  "success": false,
+  "message": "Validation failed",
+  "code": "VALIDATION_ERROR",
+  "errors": [
+    { "field": "email", "message": "Valid email is required" },
+    { "field": "password", "message": "Password must be at least 8 characters" }
+  ],
+  "timestamp": "2025-01-15T10:30:00.000Z",
+  "path": "/api/v1/auth/register",
+  "method": "POST"
+}
+```
+
+### Logging Best Practices
+
+- **Use levels:**
+  - error: 500s, exceptions, critical failures
+  - warn: expected errors (404, validation), deprecations
+  - info: startup, key business events
+  - http: request logs (via Morgan)
+  - debug: verbose dev-only details
+- **Log context:** method, path, status, userId, ip, duration.
+- **Avoid logging secrets:** passwords, tokens, PII.
+
+### Log Files
+
+- `logs/error.log` — Error-level entries
+- `logs/combined.log` — All levels (info+)
+- `logs/http.log` — HTTP access logs
+- Rotated files: `*.log.1`, `*.log.2`, etc.
+
+### Environment
+
+See `.env.example` for logging variables:
+
+- `LOG_LEVEL`, `LOG_DIR`, `LOG_MAX_SIZE`, `LOG_MAX_FILES`, `ENABLE_FILE_LOGGING`.
+
+### Development Guide
+
+- Throw custom errors from controllers/services/middlewares.
+- Let the centralized error handler build responses and log.
+- Use `logger.info/warn/error/http` instead of `console.*`.

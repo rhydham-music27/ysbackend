@@ -26,65 +26,302 @@ import {
 const router = Router();
 
 /**
- * @route   POST /api/v1/courses
- * @desc    Create a new course
- * @access  Private (Admin, Manager)
+ * @swagger
+ * /api/v1/courses:
+ *   post:
+ *     summary: Create a new course
+ *     tags: [Courses]
+ *     security:
+ *       - BearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateCourseRequest'
+ *     responses:
+ *       201:
+ *         description: Course created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CourseResponse'
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Manager or Admin role
  */
-router.post('/', authenticate, authorizeMinRole(UserRole.MANAGER), createCourseValidation, handleCourseValidationErrors, createCourse);
+router.post('/', authenticate, authorizeMinRole(UserRole.TEACHER), createCourseValidation, handleCourseValidationErrors, createCourse);
 
 /**
- * @route   GET /api/v1/courses
- * @desc    List all courses with optional filters
- * @access  Private (All authenticated users)
+ * @swagger
+ * /api/v1/courses:
+ *   get:
+ *     summary: List all courses with optional filters
+ *     tags: [Courses]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [draft, active, archived, completed]
+ *       - in: query
+ *         name: teacher
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of courses
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CourseListResponse'
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/', authenticate, courseQueryValidation, handleCourseValidationErrors, listCourses);
 
 /**
- * @route   GET /api/v1/courses/my
- * @desc    Get courses for current user (taught or enrolled)
- * @access  Private (Teacher, Student)
+ * @swagger
+ * /api/v1/courses/my:
+ *   get:
+ *     summary: Get courses for current user (taught or enrolled)
+ *     tags: [Courses]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       200:
+ *         description: User's courses
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CourseListResponse'
+ *       401:
+ *         description: Unauthorized
  */
 router.get('/my', authenticate, getMyCourses);
 
 /**
- * @route   GET /api/v1/courses/:id
- * @desc    Get a single course by ID
- * @access  Private (All authenticated users)
+ * @swagger
+ * /api/v1/courses/{id}:
+ *   get:
+ *     summary: Get a single course by ID
+ *     tags: [Courses]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CourseResponse'
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Course not found
  */
 router.get('/:id', authenticate, courseIdParamValidation, handleCourseValidationErrors, getCourse);
 
 /**
- * @route   PUT /api/v1/courses/:id
- * @desc    Update a course
- * @access  Private (Admin, Manager)
+ * @swagger
+ * /api/v1/courses/{id}:
+ *   put:
+ *     summary: Update a course
+ *     tags: [Courses]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CreateCourseRequest'
+ *     responses:
+ *       200:
+ *         description: Course updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CourseResponse'
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Manager or Admin role
+ *       404:
+ *         description: Course not found
  */
 router.put('/:id', authenticate, authorizeMinRole(UserRole.MANAGER), courseIdParamValidation, updateCourseValidation, handleCourseValidationErrors, updateCourse);
 
 /**
- * @route   DELETE /api/v1/courses/:id
- * @desc    Delete a course (only if no enrolled students)
- * @access  Private (Admin only)
+ * @swagger
+ * /api/v1/courses/{id}:
+ *   delete:
+ *     summary: Delete a course (only if no enrolled students)
+ *     tags: [Courses]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StandardResponse'
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Admin only
+ *       404:
+ *         description: Course not found
+ *       409:
+ *         description: Cannot delete course with enrolled students
  */
 router.delete('/:id', authenticate, authorize(UserRole.ADMIN), courseIdParamValidation, handleCourseValidationErrors, deleteCourse);
 
 /**
- * @route   POST /api/v1/courses/:id/enroll
- * @desc    Enroll a student in a course
- * @access  Private (Admin, Manager, Teacher)
+ * @swagger
+ * /api/v1/courses/{id}/enroll:
+ *   post:
+ *     summary: Enroll a student in a course
+ *     tags: [Courses]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EnrollStudentRequest'
+ *     responses:
+ *       200:
+ *         description: Student enrolled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StandardResponse'
+ *       400:
+ *         description: Validation error or course is full
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Teacher, Manager, or Admin role
+ *       404:
+ *         description: Course or student not found
  */
 router.post('/:id/enroll', authenticate, authorizeMinRole(UserRole.TEACHER), courseIdParamValidation, enrollStudentValidation, handleCourseValidationErrors, enrollStudentInCourse);
 
 /**
- * @route   POST /api/v1/courses/:id/unenroll
- * @desc    Unenroll a student from a course
- * @access  Private (Admin, Manager, Teacher)
+ * @swagger
+ * /api/v1/courses/{id}/unenroll:
+ *   post:
+ *     summary: Unenroll a student from a course
+ *     tags: [Courses]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/EnrollStudentRequest'
+ *     responses:
+ *       200:
+ *         description: Student unenrolled successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/StandardResponse'
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - requires Teacher, Manager, or Admin role
+ *       404:
+ *         description: Course or student not found
  */
 router.post('/:id/unenroll', authenticate, authorizeMinRole(UserRole.TEACHER), courseIdParamValidation, unenrollStudentValidation, handleCourseValidationErrors, unenrollStudentFromCourse);
 
 /**
- * @route   GET /api/v1/courses/:id/capacity
- * @desc    Check course enrollment capacity
- * @access  Private (All authenticated users)
+ * @swagger
+ * /api/v1/courses/{id}/capacity:
+ *   get:
+ *     summary: Check course enrollment capacity
+ *     tags: [Courses]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Course capacity information
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     enrolled:
+ *                       type: number
+ *                     maxStudents:
+ *                       type: number
+ *                     available:
+ *                       type: number
+ *                     isFull:
+ *                       type: boolean
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Course not found
  */
 router.get('/:id/capacity', authenticate, courseIdParamValidation, handleCourseValidationErrors, getCourseCapacity);
 

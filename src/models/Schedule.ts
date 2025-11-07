@@ -1,5 +1,5 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
-import { DayOfWeek, RecurrenceType } from '../types/enums';
+import { DayOfWeek, RecurrenceType, ApprovalStatus } from '../types/enums';
 
 export interface ISchedule extends Document {
   class: mongoose.Types.ObjectId;
@@ -15,6 +15,11 @@ export interface ISchedule extends Document {
   effectiveTo?: Date;
   isActive: boolean;
   notes?: string;
+  approvalStatus?: ApprovalStatus;
+  approvedBy?: mongoose.Types.ObjectId;
+  approvalDate?: Date;
+  approvalNotes?: string;
+  requiresApproval: boolean;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -27,6 +32,8 @@ export interface ISchedule extends Document {
   overlaps(other: ISchedule): boolean;
   isValidTimeRange(): boolean;
   getTimeInMinutes(time: string): number;
+  isPendingApproval(): boolean;
+  isApproved(): boolean;
 }
 
 export interface IScheduleModel extends Model<ISchedule> {
@@ -34,6 +41,7 @@ export interface IScheduleModel extends Model<ISchedule> {
   findByTeacher(teacherId: string): Promise<ISchedule[]>;
   findByDayAndRoom(day: DayOfWeek, room: string): Promise<ISchedule[]>;
   findActiveSchedules(): Promise<ISchedule[]>;
+  findPendingApproval(): Promise<ISchedule[]>;
   checkTeacherConflict(
     teacherId: string,
     day: DayOfWeek,
@@ -72,6 +80,11 @@ const ScheduleSchema = new Schema<ISchedule, IScheduleModel>(
     effectiveTo: { type: Date },
     isActive: { type: Boolean, default: true, index: true },
     notes: { type: String, trim: true },
+    approvalStatus: { type: String, enum: Object.values(ApprovalStatus), index: true },
+    approvedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+    approvalDate: { type: Date },
+    approvalNotes: { type: String, trim: true, maxlength: 500 },
+    requiresApproval: { type: Boolean, default: false },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }
@@ -82,6 +95,7 @@ ScheduleSchema.index({ teacher: 1, dayOfWeek: 1, startTime: 1 });
 ScheduleSchema.index({ room: 1, dayOfWeek: 1, startTime: 1 });
 ScheduleSchema.index({ course: 1, dayOfWeek: 1 });
 ScheduleSchema.index({ isActive: 1, effectiveFrom: 1, effectiveTo: 1 });
+ScheduleSchema.index({ approvalStatus: 1, createdAt: -1 });
 
 // Instance helpers
 ScheduleSchema.methods.getTimeInMinutes = function getTimeInMinutes(time: string): number {
@@ -102,6 +116,14 @@ ScheduleSchema.methods.overlaps = function overlaps(other: ISchedule): boolean {
   const startB = other.getTimeInMinutes(other.startTime);
   const endB = other.getTimeInMinutes(other.endTime);
   return startA < endB && endA > startB;
+};
+
+ScheduleSchema.methods.isPendingApproval = function (this: ISchedule): boolean {
+  return this.approvalStatus === ApprovalStatus.PENDING;
+};
+
+ScheduleSchema.methods.isApproved = function (this: ISchedule): boolean {
+  return this.approvalStatus === ApprovalStatus.APPROVED || this.approvalStatus === ApprovalStatus.AUTO_APPROVED;
 };
 
 // Virtuals
@@ -155,6 +177,10 @@ ScheduleSchema.statics.findActiveSchedules = function () {
     effectiveFrom: { $lte: now },
     $or: [{ effectiveTo: { $exists: false } }, { effectiveTo: { $gte: now } }],
   });
+};
+
+ScheduleSchema.statics.findPendingApproval = function () {
+  return this.find({ approvalStatus: ApprovalStatus.PENDING }).sort({ createdAt: 1 });
 };
 
 function timesOverlap(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {

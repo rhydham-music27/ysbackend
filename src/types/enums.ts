@@ -87,8 +87,6 @@ export enum SubmissionStatus {
   RESUBMITTED = 'resubmitted',
 }
 
-// Future enums (placeholders for subsequent phases):
-// export enum NotificationType { EMAIL = 'email', IN_APP = 'in-app', SMS = 'sms' }
 
 // Grading system enums
 export enum GradeType {
@@ -114,5 +112,77 @@ export enum LetterGrade {
   C_MINUS = 'C-',
   D = 'D',
   F = 'F',
+}
+
+// File upload enums (Phase 11)
+export enum FileType {
+  IMAGE = 'image',
+  DOCUMENT = 'document',
+  VIDEO = 'video',
+  AUDIO = 'audio',
+}
+
+export enum FileCategory {
+  PROFILE_AVATAR = 'profile_avatar',
+  ASSIGNMENT_ATTACHMENT = 'assignment_attachment',
+  ASSIGNMENT_MATERIAL = 'assignment_material',
+  COURSE_MATERIAL = 'course_material',
+  DOCUMENT = 'document',
+}
+
+// Notification system enums (Phase 12)
+export enum NotificationType {
+  EMAIL = 'email',
+  IN_APP = 'in_app',
+  BOTH = 'both',
+  SMS = 'sms',
+}
+
+export enum NotificationCategory {
+  ASSIGNMENT_DUE = 'assignment_due',
+  ASSIGNMENT_GRADED = 'assignment_graded',
+  GRADE_POSTED = 'grade_posted',
+  ATTENDANCE_MARKED = 'attendance_marked',
+  COURSE_ENROLLMENT = 'course_enrollment',
+  CLASS_SCHEDULED = 'class_scheduled',
+  CLASS_CANCELLED = 'class_cancelled',
+  ANNOUNCEMENT = 'announcement',
+  SYSTEM = 'system',
+}
+
+export enum NotificationPriority {
+  LOW = 'low',
+  MEDIUM = 'medium',
+  HIGH = 'high',
+  URGENT = 'urgent',
+}
+
+// Admin dashboard enums (Phase 14)
+export enum AuditAction {
+  USER_CREATED = 'user_created',
+  USER_UPDATED = 'user_updated',
+  USER_DELETED = 'user_deleted',
+  ROLE_ASSIGNED = 'role_assigned',
+  USER_ACTIVATED = 'user_activated',
+  USER_DEACTIVATED = 'user_deactivated',
+  BULK_USER_IMPORT = 'bulk_user_import',
+  BULK_ENROLLMENT = 'bulk_enrollment',
+  SETTINGS_UPDATED = 'settings_updated',
+  SYSTEM_CONFIG_CHANGED = 'system_config_changed',
+}
+
+export enum SettingType {
+  BOOLEAN = 'boolean',
+  STRING = 'string',
+  NUMBER = 'number',
+  JSON = 'json',
+}
+
+// Approval workflow enums (Phase 15)
+export enum ApprovalStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+  AUTO_APPROVED = 'auto_approved',
 }
 

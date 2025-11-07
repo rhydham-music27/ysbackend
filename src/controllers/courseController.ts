@@ -6,15 +6,59 @@ import {
   unenrollStudent,
   checkCourseCapacity,
   validateTeacherAssignment,
+  checkApprovalRequirement,
 } from '../services/courseService';
+import { ApprovalStatus, CourseStatus } from '../types/enums';
+import SystemSettings from '../models/SystemSettings';
 
 export async function createCourse(req: Request, res: Response, next: NextFunction) {
   try {
     const { teacher } = req.body as { teacher: string };
     await validateTeacherAssignment(teacher);
-    const course = await Course.create({ ...req.body, createdBy: (req as any).user._id });
+
+    // Check if course creation requires approval (optional enhancement)
+    let requiresApproval = false;
+    let approvalStatus;
+    let courseStatus = req.body.status || CourseStatus.DRAFT;
+
+    try {
+      // Check system setting for global approval requirement
+      const systemRequiresApproval = await SystemSettings.getSetting('COURSE_REQUIRES_APPROVAL', false);
+      if (systemRequiresApproval) {
+        requiresApproval = true;
+        approvalStatus = ApprovalStatus.PENDING;
+        courseStatus = CourseStatus.DRAFT; // Keep as draft until approved
+      }
+    } catch (error) {
+      // If system settings check fails, continue without approval requirement
+      // This allows backward compatibility
+    }
+
+    // Allow manual override of requiresApproval from request body
+    if (req.body.requiresApproval !== undefined) {
+      requiresApproval = req.body.requiresApproval;
+      if (requiresApproval) {
+        approvalStatus = ApprovalStatus.PENDING;
+        courseStatus = CourseStatus.DRAFT;
+      }
+    }
+
+    const courseData = {
+      ...req.body,
+      createdBy: (req as any).user._id,
+      requiresApproval,
+      approvalStatus,
+      status: courseStatus,
+    };
+
+    const course = await Course.create(courseData);
     await course.populate('teacher', 'profile.firstName profile.lastName email');
-    res.status(201).json({ success: true, message: 'Course created successfully', data: { course } });
+
+    const message = requiresApproval
+      ? 'Course created and submitted for approval'
+      : 'Course created successfully';
+
+    res.status(201).json({ success: true, message, data: { course } });
   } catch (error) {
     next(error);
   }
