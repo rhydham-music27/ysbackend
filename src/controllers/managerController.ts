@@ -1,4 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
+import Notification from '../models/Notification';
+import { NotificationCategory, NotificationPriority, NotificationType } from '../types/enums';
+import ClassModel from '../models/Class';
 import {
   approveCourse,
   approveSchedule,
@@ -175,6 +178,39 @@ export async function getCourseStats(req: Request, res: Response, next: NextFunc
       success: true,
       data: { stats },
     });
+  } catch (error) {
+    next(error);
+  }
+}
+
+// Notify the assigned teacher for a class to select weekdays
+export async function notifyTeacherOfClassAssignment(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params; // class id
+    const { teacherId } = req.body as { teacherId?: string };
+
+    const cls = await ClassModel.findById(id).populate('teacher');
+    if (!cls) {
+      return res.status(404).json({ success: false, message: 'Class not found' });
+    }
+    const recipient = teacherId || (cls as any).teacher?._id?.toString();
+    if (!recipient) {
+      return res.status(400).json({ success: false, message: 'No teacher assigned to this class' });
+    }
+
+    const title = 'Class assigned to you';
+    const message = `Please set your weekly days for the class "${cls.title}".`;
+    const notification = await Notification.create({
+      user: recipient,
+      type: NotificationType.IN_APP,
+      category: NotificationCategory.CLASS_SCHEDULED,
+      priority: NotificationPriority.MEDIUM,
+      title,
+      message,
+      metadata: { classId: (cls as any)._id.toString(), actionUrl: `/teacher/classes/${(cls as any)._id.toString()}` },
+    });
+
+    res.status(201).json({ success: true, message: 'Notification sent to teacher', data: { notification } });
   } catch (error) {
     next(error);
   }

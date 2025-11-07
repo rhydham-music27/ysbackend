@@ -14,6 +14,7 @@ import {
   getCourseStats,
 } from '../controllers/managerController';
 import { assignCoordinatorToClass } from '../controllers/coordinatorController';
+import { notifyTeacherOfClassAssignment } from '../controllers/managerController';
 import { createClass } from '../controllers/classController';
 import {
   approvalNotesValidation,
@@ -382,6 +383,48 @@ router.patch(
   assignCoordinatorValidation,
   handleCoordinatorValidationErrors,
   assignCoordinatorToClass
+);
+
+/**
+ * @swagger
+ * /api/v1/manager/classes/{id}/notify-teacher:
+ *   post:
+ *     summary: Notify the assigned teacher for a class to select weekdays
+ *     tags: [Manager]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               teacherId:
+ *                 type: string
+ *                 description: Explicit teacher ID (optional). If omitted, uses class.teacher.
+ *     responses:
+ *       201:
+ *         description: Notification sent to teacher
+ *       400:
+ *         description: No teacher assigned
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
+ *       404:
+ *         description: Class not found
+ */
+router.post(
+  '/classes/:id/notify-teacher',
+  authenticate,
+  authorizeMinRole(UserRole.MANAGER),
+  notifyTeacherOfClassAssignment
 );
 
 export default router;

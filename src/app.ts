@@ -14,6 +14,9 @@ import gradeRoutes from './routes/gradeRoutes';
 import scheduleRoutes from './routes/scheduleRoutes';
 import notificationRoutes from './routes/notificationRoutes';
 import reportRoutes from './routes/reportRoutes';
+import tutorLeadRoutes from './routes/tutorLeadRoutes';
+import tutorLeadAuthRoutes from './routes/tutorLeadAuthRoutes';
+import tutorLeadDocumentRoutes from './routes/tutorLeadDocumentRoutes';
 import adminRoutes from './routes/adminRoutes';
 import managerRoutes from './routes/managerRoutes';
 import coordinatorRoutes from './routes/coordinatorRoutes';
@@ -33,17 +36,29 @@ const app = express();
 app.use(helmet());
 
 // CORS configuration
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:8080')
   .split(',')
   .map((origin) => origin.trim());
 
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  })
-);
+const corsOptions: cors.CorsOptions =
+  process.env.NODE_ENV === 'production'
+    ? {
+        origin: allowedOrigins,
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        optionsSuccessStatus: 204,
+      }
+    : {
+        origin: (_origin, cb) => cb(null, true), // allow all origins in dev
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        optionsSuccessStatus: 204,
+      };
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // HTTP request logger
 if (process.env.NODE_ENV !== 'production') {
@@ -96,6 +111,9 @@ app.use(`/api/${apiVersion}/admin`, adminRoutes);
 app.use(`/api/${apiVersion}/manager`, managerRoutes);
 app.use(`/api/${apiVersion}/coordinator`, coordinatorRoutes);
 app.use(`/api/${apiVersion}/student`, studentRoutes);
+app.use(`/api/${apiVersion}/tutor-leads`, tutorLeadRoutes);
+app.use(`/api/${apiVersion}/tutor-lead-auth`, tutorLeadAuthRoutes);
+app.use(`/api/${apiVersion}/tutor-lead-docs`, tutorLeadDocumentRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

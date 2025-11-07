@@ -2,6 +2,7 @@ import mongoose, { Document, Model, Schema } from 'mongoose';
 import { OAuthProvider, UserRole } from '../types/enums';
 import { comparePassword as comparePasswordUtil, hashPassword } from '../utils/password';
 
+//
 export interface IUser extends Document {
   email: string;
   password: string;
