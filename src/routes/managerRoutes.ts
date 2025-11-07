@@ -14,6 +14,7 @@ import {
   getCourseStats,
 } from '../controllers/managerController';
 import { assignCoordinatorToClass } from '../controllers/coordinatorController';
+import { createClass } from '../controllers/classController';
 import {
   approvalNotesValidation,
   rejectNotesValidation,
@@ -23,6 +24,7 @@ import {
   handleManagerValidationErrors,
 } from '../validators/managerValidator';
 import { assignCoordinatorValidation, classIdParamValidation as coordinatorClassIdParamValidation, handleCoordinatorValidationErrors } from '../validators/coordinatorValidator';
+import { createClassValidation, handleClassValidationErrors } from '../validators/classValidator';
 
 const router = Router();
 
@@ -61,6 +63,33 @@ router.get('/dashboard', authenticate, authorizeMinRole(UserRole.MANAGER), getMa
  *         description: Forbidden - Manager or Admin only
  */
 router.get('/course-stats', authenticate, authorizeMinRole(UserRole.MANAGER), getCourseStats);
+
+/**
+ * @swagger
+ * /api/v1/manager/classes:
+ *   post:
+ *     summary: Create a class session (manager/admin)
+ *     tags: [Manager]
+ *     security:
+ *       - BearerAuth: []
+ *     responses:
+ *       201:
+ *         description: Class created successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
+ */
+router.post(
+  '/classes',
+  authenticate,
+  authorizeMinRole(UserRole.MANAGER),
+  createClassValidation,
+  handleClassValidationErrors,
+  createClass
+);
 
 /**
  * @swagger

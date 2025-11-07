@@ -298,7 +298,7 @@ router.get(
 router.post(
   '/users',
   authenticate,
-  authorizeMinRole(UserRole.COORDINATOR),
+  authorizeMinRole(UserRole.ADMIN),
   createUserValidation,
   handleAdminValidationErrors,
   createUser
@@ -345,7 +345,7 @@ router.post(
 router.get(
   '/users',
   authenticate,
-  authorize(UserRole.ADMIN),
+  authorizeMinRole(UserRole.MANAGER),
   userQueryValidation,
   handleAdminValidationErrors,
   listAllUsers
