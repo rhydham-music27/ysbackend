@@ -147,5 +147,4 @@ NotificationSchema.statics.getUnreadCount = function (userId: string) {
 const Notification = mongoose.model<INotification, INotificationModel>('Notification', NotificationSchema);
 
 export default Notification;
-export { INotification, INotificationMetadata };
 

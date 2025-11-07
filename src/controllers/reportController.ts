@@ -209,7 +209,7 @@ export async function getDashboardSummary(req: Request, res: Response, next: Nex
         myStudentsCount,
         gradingPending,
         upcomingClasses: upcomingClasses.map((c) => ({
-          id: c._id.toString(),
+          id: String((c as any)._id),
           title: c.title,
           scheduledDate: c.scheduledDate,
         })),
@@ -242,12 +242,12 @@ export async function getDashboardSummary(req: Request, res: Response, next: Nex
         enrolledCoursesCount,
         upcomingAssignmentsCount: upcomingAssignments.length,
         upcomingAssignments: upcomingAssignments.map((a) => ({
-          id: a._id.toString(),
+          id: String((a as any)._id),
           title: a.title,
           dueDate: a.dueDate,
         })),
         recentGrades: recentGrades.map((g) => ({
-          id: g._id.toString(),
+          id: String((g as any)._id),
           course: (g.course as any)?.name || 'Unknown',
           score: g.score,
           maxScore: g.maxScore,

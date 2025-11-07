@@ -1166,7 +1166,7 @@ const swaggerDefinition = {
   ],
 };
 
-const options: swaggerJsdoc.Options = {
+const options: any = {
   definition: swaggerDefinition,
   apis: [
     './src/routes/*.ts',

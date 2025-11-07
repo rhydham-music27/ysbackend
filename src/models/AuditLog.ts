@@ -141,5 +141,4 @@ AuditLogSchema.statics.findRecent = function (limit: number) {
 const AuditLog = mongoose.model<IAuditLog, IAuditLogModel>('AuditLog', AuditLogSchema);
 
 export default AuditLog;
-export { IAuditLog, IAuditLogMetadata, IAuditLogModel };
 

@@ -39,7 +39,7 @@ export async function addGradeController(req: Request, res: Response, next: Next
       const letterGrade = (grade as any).letterGrade || '';
       notifyGradePosted(
         grade.student.toString(),
-        grade._id.toString(),
+        String((grade as any)._id),
         courseName,
         grade.score,
         grade.maxScore,

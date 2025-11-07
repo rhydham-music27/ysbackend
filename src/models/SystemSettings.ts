@@ -186,5 +186,4 @@ SystemSettingsSchema.statics.setSetting = async function (key: string, value: an
 const SystemSettings = mongoose.model<ISystemSettings, ISystemSettingsModel>('SystemSettings', SystemSettingsSchema);
 
 export default SystemSettings;
-export { ISystemSettings, ISystemSettingsModel };
 
