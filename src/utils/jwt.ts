@@ -1,4 +1,4 @@
-import jwt, { JsonWebTokenError, NotBeforeError, TokenExpiredError } from 'jsonwebtoken';
+import jwt, { JsonWebTokenError, NotBeforeError, TokenExpiredError, SignOptions, Secret } from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { IUser } from '../models/User';
 import { UserRole } from '../types/enums';
@@ -34,11 +34,13 @@ export function generateAccessToken(user: IUser): string {
       role: user.role,
     };
 
-    const token = jwt.sign(payload, getEnv('JWT_SECRET'), {
-      expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+    const secret = getEnv('JWT_SECRET') as Secret;
+    const options: SignOptions = {
+      expiresIn: (process.env.JWT_EXPIRES_IN as any) || '1h',
       issuer: 'yourshikshak-api',
       audience: 'yourshikshak-users',
-    });
+    };
+    const token = jwt.sign(payload, secret, options);
 
     return token;
   } catch (error) {
@@ -50,11 +52,13 @@ export function generateRefreshToken(user: IUser): string {
   try {
     const payload = { userId: String(user._id) } as Partial<JwtPayload>;
 
-    const token = jwt.sign(payload, getEnv('JWT_REFRESH_SECRET'), {
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '30d',
+    const secret = getEnv('JWT_REFRESH_SECRET') as Secret;
+    const options: SignOptions = {
+      expiresIn: (process.env.JWT_REFRESH_EXPIRES_IN as any) || '30d',
       issuer: 'yourshikshak-api',
       audience: 'yourshikshak-users',
-    });
+    };
+    const token = jwt.sign(payload, secret, options);
 
     return token;
   } catch (error) {

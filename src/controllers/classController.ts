@@ -28,10 +28,11 @@ export async function createClass(req: Request, res: Response, next: NextFunctio
     }
 
     const classDoc = await Class.create(req.body);
-    await (await (await classDoc
-      .populate('course', 'name code'))
-      .populate('teacher', 'profile.firstName profile.lastName email'))
-      .populate('coordinator', 'profile.firstName profile.lastName email');
+    await Class.populate(classDoc as any, [
+      { path: 'course', select: 'name code' },
+      { path: 'teacher', select: 'profile.firstName profile.lastName email' },
+      { path: 'coordinator', select: 'profile.firstName profile.lastName email' },
+    ]);
 
     res.status(201).json({ success: true, message: 'Class created successfully', data: { class: classDoc } });
   } catch (error) {
