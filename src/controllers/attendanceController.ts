@@ -31,7 +31,7 @@ export async function markAttendanceForStudent(req: Request, res: Response, next
     const className = (attendance.class as any)?.title || 'Class';
     notifyAttendanceMarked(
       attendance.student.toString(),
-      attendance._id.toString(),
+      String((attendance as any)._id),
       className,
       attendance.date,
       attendance.status
@@ -65,7 +65,7 @@ export async function bulkMarkAttendanceForClass(req: Request, res: Response, ne
       const className = (attendance.class as any)?.title || 'Class';
       notifyAttendanceMarked(
         attendance.student.toString(),
-        attendance._id.toString(),
+        String((attendance as any)._id),
         className,
         attendance.date,
         attendance.status

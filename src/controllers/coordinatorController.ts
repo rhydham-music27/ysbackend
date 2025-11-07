@@ -14,7 +14,9 @@ import {
 
 export async function getCoordinatorDashboardController(req: Request, res: Response, next: NextFunction) {
   try {
-    const dashboard = await getCoordinatorDashboard(req.user._id.toString());
+    const userId = (req as any).user?._id?.toString();
+    if (!userId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const dashboard = await getCoordinatorDashboard(userId);
     res.status(200).json({ success: true, data: { dashboard } });
   } catch (error) {
     next(error);
@@ -23,7 +25,8 @@ export async function getCoordinatorDashboardController(req: Request, res: Respo
 
 export async function getMyAssignedClasses(req: Request, res: Response, next: NextFunction) {
   try {
-    const coordinatorId = req.user._id.toString();
+    const coordinatorId = (req as any).user?._id?.toString();
+    if (!coordinatorId) return res.status(401).json({ success: false, message: 'Unauthorized' });
     const { status, startDate, endDate } = req.query as Record<string, string>;
 
     let parsedStartDate: Date | undefined;
@@ -50,7 +53,8 @@ export async function getMyAssignedClasses(req: Request, res: Response, next: Ne
 
 export async function getMySchedule(req: Request, res: Response, next: NextFunction) {
   try {
-    const coordinatorId = req.user._id.toString();
+    const coordinatorId = (req as any).user?._id?.toString();
+    if (!coordinatorId) return res.status(401).json({ success: false, message: 'Unauthorized' });
     const schedules = await getCoordinatorSchedule(coordinatorId);
     res.status(200).json({ success: true, data: { schedules, count: schedules.length } });
   } catch (error) {
@@ -61,7 +65,8 @@ export async function getMySchedule(req: Request, res: Response, next: NextFunct
 export async function getClassAttendance(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    const coordinatorId = req.user._id.toString();
+    const coordinatorId = (req as any).user?._id?.toString();
+    if (!coordinatorId) return res.status(401).json({ success: false, message: 'Unauthorized' });
     const overview = await getClassAttendanceOverview(coordinatorId, id);
     res.status(200).json({ success: true, data: { overview } });
   } catch (error) {
@@ -72,7 +77,8 @@ export async function getClassAttendance(req: Request, res: Response, next: Next
 export async function getClassStudents(req: Request, res: Response, next: NextFunction) {
   try {
     const { id } = req.params;
-    const coordinatorId = req.user._id.toString();
+    const coordinatorId = (req as any).user?._id?.toString();
+    if (!coordinatorId) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
     await validateCoordinatorClassAccess(coordinatorId, id);
 
@@ -91,7 +97,8 @@ export async function sendClassAnnouncement(req: Request, res: Response, next: N
   try {
     const { id } = req.params;
     const { title, message, studentIds } = req.body;
-    const coordinatorId = req.user._id.toString();
+    const coordinatorId = (req as any).user?._id?.toString();
+    if (!coordinatorId) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
     const result = await sendStudentCommunication({
       classId: id,
@@ -115,7 +122,8 @@ export async function assignCoordinatorToClass(req: Request, res: Response, next
   try {
     const { id } = req.params;
     const { coordinatorId } = req.body;
-    const assignedBy = req.user._id.toString();
+    const assignedBy = (req as any).user?._id?.toString();
+    if (!assignedBy) return res.status(401).json({ success: false, message: 'Unauthorized' });
 
     const classDoc = await assignCoordinator({
       classId: id,
