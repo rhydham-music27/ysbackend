@@ -14,7 +14,7 @@ export async function register(req: Request, res: Response, next: NextFunction) 
       profile: { firstName: string; lastName: string; phone?: string };
       role?: UserRole;
     };
-
+      console.log(email, password, profile, role)
     const existing = await User.findOne({ email });
     if (existing) {
       throw new ConflictError('User with this email already exists');

@@ -71,7 +71,7 @@ router.get('/dashboard', authenticate, authorize(UserRole.COORDINATOR), getCoord
  *       403:
  *         description: Forbidden - Coordinator only
  */
-router.get('/classes', authenticate, authorize(UserRole.COORDINATOR), coordinatorQueryValidation, handleCoordinatorValidationErrors, getMyAssignedClasses);
+router.get('/classes', authenticate, authorizeMinRole(UserRole.COORDINATOR), coordinatorQueryValidation, handleCoordinatorValidationErrors, getMyAssignedClasses);
 
 /**
  * @swagger

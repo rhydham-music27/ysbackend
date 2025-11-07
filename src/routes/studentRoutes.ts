@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import authenticate from '../middlewares/auth';
-import { authorize } from '../middlewares/rbac';
+import { authorize, authorizeMinRole } from '../middlewares/rbac';
 import { UserRole } from '../types/enums';
 import {
   getDashboard,
@@ -47,7 +47,7 @@ router.get('/dashboard', authenticate, authorize(UserRole.STUDENT), getDashboard
  *       403:
  *         description: Forbidden - Student only
  */
-router.get('/courses/available', authenticate, authorize(UserRole.STUDENT), getAvailableCoursesController);
+router.get('/courses/available', authenticate, authorizeMinRole(UserRole.STUDENT), getAvailableCoursesController);
 
 /**
  * @swagger

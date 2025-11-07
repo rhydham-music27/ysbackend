@@ -53,7 +53,7 @@ const router = Router();
  *       403:
  *         description: Forbidden - requires Manager or Admin role
  */
-router.post('/', authenticate, authorizeMinRole(UserRole.MANAGER), createCourseValidation, handleCourseValidationErrors, createCourse);
+router.post('/', authenticate, authorizeMinRole(UserRole.TEACHER), createCourseValidation, handleCourseValidationErrors, createCourse);
 
 /**
  * @swagger

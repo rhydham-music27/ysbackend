@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import authenticate from '../middlewares/auth';
-import { authorize } from '../middlewares/rbac';
+import { authorize, authorizeMinRole } from '../middlewares/rbac';
 import { UserRole } from '../types/enums';
 import {
   createUser,
@@ -298,7 +298,7 @@ router.get(
 router.post(
   '/users',
   authenticate,
-  authorize(UserRole.ADMIN),
+  authorizeMinRole(UserRole.COORDINATOR),
   createUserValidation,
   handleAdminValidationErrors,
   createUser

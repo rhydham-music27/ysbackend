@@ -13,6 +13,7 @@ import {
   getManagerDashboardController,
   getCourseStats,
 } from '../controllers/managerController';
+import { assignCoordinatorToClass } from '../controllers/coordinatorController';
 import {
   approvalNotesValidation,
   rejectNotesValidation,
@@ -21,6 +22,7 @@ import {
   teacherIdParamValidation,
   handleManagerValidationErrors,
 } from '../validators/managerValidator';
+import { assignCoordinatorValidation, classIdParamValidation as coordinatorClassIdParamValidation, handleCoordinatorValidationErrors } from '../validators/coordinatorValidator';
 
 const router = Router();
 
@@ -305,6 +307,52 @@ router.get(
   teacherIdParamValidation,
   handleManagerValidationErrors,
   getTeacherPerformance
+);
+
+/**
+ * @swagger
+ * /api/v1/manager/classes/{id}/assign-coordinator:
+ *   patch:
+ *     summary: Assign a coordinator to a class (manager/admin only)
+ *     tags: [Manager]
+ *     security:
+ *       - BearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [coordinatorId]
+ *             properties:
+ *               coordinatorId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Coordinator assigned successfully
+ *       400:
+ *         description: Validation error
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden - Manager or Admin only
+ *       404:
+ *         description: Class or coordinator not found
+ */
+router.patch(
+  '/classes/:id/assign-coordinator',
+  authenticate,
+  authorizeMinRole(UserRole.MANAGER),
+  coordinatorClassIdParamValidation,
+  assignCoordinatorValidation,
+  handleCoordinatorValidationErrors,
+  assignCoordinatorToClass
 );
 
 export default router;
